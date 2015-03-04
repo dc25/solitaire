@@ -1,10 +1,12 @@
 import System.Random
 import Data.Char
+import Control.Monad
 
 shuffle :: [a] -> IO [a]
 shuffle ys = do
     gen <- newStdGen
     return $ shuffle' gen ys where
+        shuffle' _ [] = []
         shuffle' gen ys = 
             let (r, newGen) = randomR (0, length ys - 1) gen
                 (a,b) = splitAt r ys
@@ -36,10 +38,10 @@ instance Show Card where
 
 data Game = Game {
          foundations :: [[Card]],
-         concealed :: [[Card]],
-         visible :: [[Card]],
-         waste :: [Card],
-         deck :: [Card]
+         concealed ::   [[Card]],
+         visible ::     [[Card]],
+         waste ::       [Card],
+         deck ::        [Card]
          }
 
 display :: Game -> IO ()
@@ -70,7 +72,6 @@ gameOver game =    all null (visible game)
                 && null (waste game) 
                 && null (deck game) 
 
-updateGame game command = game
 
 -- deal a deck of cards out to the klondike layout
 start game = let (visible', concealed', deck') = deal (visible game) (concealed game) (deck game)
@@ -115,14 +116,33 @@ main = do
               gameInPlay = start game
 
           display gameInPlay
-          updateLoop game
+          updateLoop gameInPlay
           putStrLn "Game Over"
 
+updateGame :: Game -> String -> IO Game
+updateGame game command 
+        | cmd == 'D' = if null dg then do 
+                           putStrLn "No cards are available to draw from.  Use 'R' to replenish."
+                           return game
+                       else do
+                           let newGame = Game fg cg vg (reverse (take 3 dg) ++ wg) (drop 3 dg)
+                           display newGame 
+                           return newGame
+
+        | otherwise = do putStrLn "hello"
+                         return $ Game fg cg vg wg dg
+
+        where cmd = head command
+              fg  = foundations game
+              cg  = concealed game
+              vg  = visible game
+              wg  = waste game
+              dg  = deck game
+
+updateLoop :: Game -> IO ()
 updateLoop game = 
-    if gameOver game then 
-        return 0
-    else do
+    Control.Monad.unless (gameOver game) $ do
         command <- getLine
-        putStrLn command
-        updateLoop $ updateGame game command
+        updatedGame <- updateGame game command
+        updateLoop updatedGame
 

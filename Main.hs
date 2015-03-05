@@ -30,8 +30,20 @@ suitLetter Diamonds = 'D'
 suitLetter Spades =   'S'
 suitLetter Clubs =    'C'
 
+data Color = Red | Black deriving  (Eq, Ord, Enum, Bounded, Show, Read)
 
-data Card = Card Rank Suit 
+suitColor Hearts =   Red
+suitColor Diamonds = Red
+suitColor Spades =   Black
+suitColor Clubs =    Black
+
+
+data Card = Card {
+         rank :: Rank,
+         suit :: Suit 
+         }
+
+cardColor (Card _ suit) = suitColor suit
 
 instance Show Card where
     show (Card rank suit) = [rankLetter rank, suitLetter suit]
@@ -111,7 +123,7 @@ main = do
               foundations = [[],[],[],[]]
               concealed =   [[],[],[],[],[],[],[]]
               visible =     [[],[],[],[],[],[],[]]
-              waste = []
+              waste =       []
               game = Game foundations concealed visible waste shuffledDeck
               gameInPlay = start game
 
@@ -119,25 +131,63 @@ main = do
           updateLoop gameInPlay
           putStrLn "Game Over"
 
-updateGame :: Game -> String -> IO Game
-updateGame game command 
-        | cmd == 'D' = if null dg then do 
-                           putStrLn "No cards are available to draw from.  Use 'R' to replenish."
-                           return game
-                       else do
-                           let newGame = Game fg cg vg (reverse (take 3 dg) ++ wg) (drop 3 dg)
-                           display newGame 
-                           return newGame
+goesOn :: Card -> Card -> Bool
+goesOn c0 c1 = (cardColor c0 /= cardColor c1) && fromEnum (rank c0) + 1 == fromEnum (rank c1)
 
-        | otherwise = do putStrLn "hello"
+
+goesOnColumn card concealed visible = 
+       (null visible  && null concealed && rank card == King ) 
+    || (not (null visible) && card `goesOn` head visible) 
+
+playFromDeck :: Game -> Char -> IO Game
+playFromDeck game@(Game fg cg vg wg dg) subCommand 
+        | subCommand >= '1' && subCommand <= '7'
+            = let tableIndex = ord subCommand - ord '1'
+                  visibleColumn = vg !! tableIndex
+                  concealedColumn = cg !! tableIndex
+                  tableCard = head visibleColumn
+                  deckCard = head (waste game)
+              in if goesOnColumn deckCard concealedColumn visibleColumn then do
+                     putStrLn $ "Putting " ++ show deckCard ++ " on column# " ++ show tableIndex
+                     let newGame = Game fg cg (take tableIndex vg ++ (deckCard : visibleColumn) : drop (tableIndex+1) vg) (drop 1 wg) dg
+                     display newGame
+                     return newGame
+                 else do
+                     putStrLn $ "Can not put " ++ show deckCard ++ " on column# " ++ show tableIndex
+                     return game
+
+
+
+playFromTable :: Game -> Char -> IO Game
+playFromTable game subCommand = return game
+
+updateGame :: Game -> String -> IO Game
+updateGame game@(Game fg cg vg wg dg)  command
+        | cmd0 == 'D' = if null dg then do 
+                            putStrLn "No cards are available to Draw from.  Use 'R' to replenish."
+                            return game
+                        else do
+                            let newGame = Game fg cg vg (reverse (take 3 dg) ++ wg) (drop 3 dg)
+                            display newGame 
+                            return newGame
+
+        | cmd0 == 'R' = if not (null dg) then do 
+                            putStrLn "Can not Replenish deck while it still contains cards."
+                            return game
+                        else do
+                            let newGame = Game fg cg vg [] (reverse wg)
+                            display newGame 
+                            return newGame
+
+        | cmd0 == 'P' = playFromDeck game cmd1
+
+        | cmd0 > '1' && cmd0 < '7' = playFromTable game cmd1
+
+        | otherwise = do putStrLn $ "Invalid command: " ++ command
                          return $ Game fg cg vg wg dg
 
-        where cmd = head command
-              fg  = foundations game
-              cg  = concealed game
-              vg  = visible game
-              wg  = waste game
-              dg  = deck game
+        where cmd0 = head command
+              cmd1 = if length command > 1 then head $ tail command else ' '
 
 updateLoop :: Game -> IO ()
 updateLoop game = 

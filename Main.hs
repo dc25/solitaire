@@ -223,6 +223,20 @@ fromColumnToColumn game@(Game fg cg wg dg) index0 index1 =
         newColumns1 = addToColumns newColumns0 index1 removedCards
     in Game fg  newColumns1 wg dg 
 
+fromDeckToColumn :: Game -> Int -> Game
+fromDeckToColumn game@(Game fg cg wg dg) index1 =
+    let newDeck = tail wg
+        removedCard = head wg
+        newColumns = addOneToColumns cg index1 removedCard
+    in  Game fg newColumns newDeck dg
+
+fromDeckToFoundation :: Game -> Int -> Game
+fromDeckToFoundation game@(Game fg cg wg dg) index1 =
+    let newDeck = tail wg
+        removedCard = head wg
+        newFoundations = addToFoundations fg index1 removedCard
+    in Game newFoundations  cg newDeck dg
+
 -- Helper function
 printAndReturn :: Game -> IO Game
 printAndReturn game = do
@@ -273,13 +287,7 @@ playDeckToColumn game@(Game fg cg wg dg) index1
                     putStrLn $ "Can not move cards from deck to column: " ++ show (index1+1)
                     return game
                   
-                | otherwise = do
-                    let newDeck = tail wg
-                    let removedCard = head wg
-                    let newColumns = addOneToColumns cg index1 removedCard
-                    let newGame = Game fg newColumns newDeck dg
-                    print newGame 
-                    return newGame 
+                | otherwise = printAndReturn $ fromDeckToColumn game index1 
 
 playDeckToFoundation :: Game -> Int -> IO Game
 playDeckToFoundation game@(Game fg cg wg dg) index1 
@@ -291,13 +299,7 @@ playDeckToFoundation game@(Game fg cg wg dg) index1
                     putStrLn $ "Can not move cards from deck to foundation: " ++ [chr (ord 'A' + index1)]
                     return game
                   
-                | otherwise = do
-                    let newDeck = tail wg
-                    let removedCard = head wg
-                    let newFoundations = addToFoundations fg index1 removedCard
-                    let newGame = Game newFoundations  cg newDeck dg
-                    print newGame 
-                    return newGame 
+                | otherwise = printAndReturn $ fromDeckToFoundation game index1 
 
 playFromTable :: Game -> Char -> Char -> IO Game
 playFromTable game@(Game fg cg wg dg) cmd0 cmd1 

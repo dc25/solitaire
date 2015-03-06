@@ -156,6 +156,85 @@ goesOnFoundation card foundation =
                    (suit card0 == suit card1) 
                 && fromEnum (rank card0) == fromEnum (rank card1) + 1
 
+---------------------------------------------------------
+-- The following routines operate on one part 
+-- (columns or foundations or waste or deck ) 
+-- of a game.
+---------------------------------------------------------
+
+-- if the visible portion of a column is empty
+-- then "replenish" it with one card from the concealed
+-- portion of the column
+replenishColumn :: Column -> Column
+replenishColumn column@(Column concealed  visible) =
+    if null visible && not (null concealed)
+    then Column (tail concealed) [head concealed]
+    else column
+
+-- check for empty column has already been done; assert ??
+removeOneFromColumn :: [Column] -> Int -> ([Column], Card)
+removeOneFromColumn cg index0 =
+    let column0@(Column concealed0 visible0) = cg !! index0
+        newColumn0 = Column concealed0 (tail visible0)
+        newColumn1 = replenishColumn newColumn0
+        newColumns0 = take index0 cg ++ newColumn1 : drop (index0+1) cg
+    in (newColumns0, head visible0)
+
+-- check for empty column has already been done; assert ??
+removeAllFromColumn :: [Column] -> Int -> ([Column], [Card])
+removeAllFromColumn cg index0 =
+    let column0@(Column concealed0 visible0) = cg !! index0
+        newColumn0 = Column concealed0 []
+        newColumn1 = replenishColumn newColumn0
+        newColumns0 = take index0 cg ++ newColumn1 : drop (index0+1) cg
+    in (newColumns0, visible0)
+
+addToFoundations :: [[Card]] -> Int -> Card -> [[Card]]
+addToFoundations fg index1 card =
+    let foundation1 = fg !! index1
+        newFoundation = card : foundation1
+    in take index1 fg ++ newFoundation : drop (index1+1) fg
+
+addToColumns :: [Column] -> Int -> [Card] -> [Column]
+addToColumns cg index1 cards =
+    let column1@(Column concealed1 visible1) = cg !! index1
+        newColumn = Column concealed1 (cards ++ visible1)
+    in take index1 cg ++ newColumn : drop (index1+1) cg
+
+addOneToColumns :: [Column] -> Int -> Card -> [Column]
+addOneToColumns cg index1 card =
+    let column1@(Column concealed1 visible1) = cg !! index1
+        newColumn = Column concealed1 (card : visible1)
+    in take index1 cg ++ newColumn : drop (index1+1) cg
+
+---------------------------------------------------------
+-- The following routines operate on an entire game.
+---------------------------------------------------------
+
+fromColumnToFoundation :: Game -> Int -> Int -> Game
+fromColumnToFoundation game@(Game fg cg wg dg) index0 index1 =
+    let (newColumns0,removedCard) = removeOneFromColumn cg index0
+        newFoundations = addToFoundations fg index1 removedCard
+    in Game newFoundations  newColumns0 wg dg 
+
+fromColumnToColumn :: Game -> Int -> Int -> Game
+fromColumnToColumn game@(Game fg cg wg dg) index0 index1 =
+    let (newColumns0,removedCards) = removeAllFromColumn cg index0
+        newColumns1 = addToColumns newColumns0 index1 removedCards
+    in Game fg  newColumns1 wg dg 
+
+-- Helper function
+printAndReturn :: Game -> IO Game
+printAndReturn game = do
+    print game
+    return game
+
+-------------------------------------------------------------
+-- The following routines do semantic checking and then
+-- carry out a command.  By semantic checking I mean: make 
+-- sure the command makes sense given the current game state.
+-------------------------------------------------------------
+
 playColumnToFoundation :: Game -> Int -> Int -> IO Game
 playColumnToFoundation game@(Game fg cg wg dg) index0 index1 
                 | null.visible $ cg !! index0 = do
@@ -166,27 +245,7 @@ playColumnToFoundation game@(Game fg cg wg dg) index0 index1
                     putStrLn $ "Can not move card from column: " ++ show (index0+1) ++ " to foundation: " ++ [chr (ord 'A' + index1)]
                     return game
                   
-                | (null.concealed) (cg !! index0) = do
-                    let newColumn0 = Column [] []
-                    let newColumns0 = take index0 cg ++ newColumn0 : drop (index0+1) cg
-
-                    let newFoundation = (head.visible) (cg !! index0) : (fg !! index1)
-                    let newFoundations = take index1 fg ++ newFoundation : drop (index1+1) fg
-
-                    let newGame = Game newFoundations  newColumns0 wg dg 
-                    print newGame 
-                    return newGame 
-
-                | otherwise = do
-                    let newColumn0 = Column (tail.concealed $ cg !! index0) [head.concealed $ cg !! index0]
-                    let newColumns0 = take index0 cg ++ newColumn0 : drop (index0+1) cg
-
-                    let newFoundation = (head.visible) (cg !! index0) : (fg !! index1)
-                    let newFoundations = take index1 fg ++ newFoundation : drop (index1+1) fg
-
-                    let newGame = Game newFoundations  newColumns0 wg dg 
-                    print newGame 
-                    return newGame 
+                | otherwise = printAndReturn $ fromColumnToFoundation game index0 index1
 
 playColumnToColumn :: Game -> Int -> Int -> IO Game
 playColumnToColumn game@(Game fg cg wg dg) index0 index1 
@@ -202,27 +261,7 @@ playColumnToColumn game@(Game fg cg wg dg) index0 index1
                     putStrLn $ "Can not move cards from column: " ++ show (index0+1) ++ " to column: " ++ show (index1+1)
                     return game
                   
-                | (null.concealed) (cg !! index0) = do
-                    let newColumn0 = Column [] []
-                    let newColumns0 = take index0 cg ++ newColumn0 : drop (index0+1) cg
-
-                    let newColumn1 = Column (concealed $ cg !! index1) (visible (cg !! index0) ++ visible (cg !! index1))
-                    let newColumns1 = take index1 newColumns0 ++ newColumn1 : drop (index1+1) newColumns0
-
-                    let newGame = Game fg  newColumns1 wg dg 
-                    print newGame 
-                    return newGame 
-
-                | otherwise = do
-                    let newColumn0 = Column (tail.concealed $ cg !! index0) [head.concealed $ cg !! index0]
-                    let newColumns0 = take index0 cg ++ newColumn0 : drop (index0+1) cg
-
-                    let newColumn1 = Column (concealed $ cg !! index1) (visible (cg !! index0) ++ visible (cg !! index1))
-                    let newColumns1 = take index1 newColumns0 ++ newColumn1 : drop (index1+1) newColumns0
-
-                    let newGame = Game fg  newColumns1 wg dg 
-                    print newGame 
-                    return newGame 
+                | otherwise = printAndReturn $ fromColumnToColumn game index0 index1
 
 playDeckToColumn :: Game -> Int -> IO Game
 playDeckToColumn game@(Game fg cg wg dg) index1 
@@ -236,11 +275,9 @@ playDeckToColumn game@(Game fg cg wg dg) index1
                   
                 | otherwise = do
                     let newDeck = tail wg
-
-                    let newColumn1 = Column (concealed $ cg !! index1) (head wg : visible (cg !! index1))
-                    let newColumns1 = take index1 cg ++ newColumn1 : drop (index1+1) cg
-
-                    let newGame = Game fg  newColumns1 newDeck dg
+                    let removedCard = head wg
+                    let newColumns = addOneToColumns cg index1 removedCard
+                    let newGame = Game fg newColumns newDeck dg
                     print newGame 
                     return newGame 
 
@@ -256,14 +293,11 @@ playDeckToFoundation game@(Game fg cg wg dg) index1
                   
                 | otherwise = do
                     let newDeck = tail wg
-
-                    let newFoundation = head wg : (fg !! index1)
-                    let newFoundations = take index1 fg ++ newFoundation : drop (index1+1) fg
-
-                    let newGame = Game newFoundations cg newDeck dg
+                    let removedCard = head wg
+                    let newFoundations = addToFoundations fg index1 removedCard
+                    let newGame = Game newFoundations  cg newDeck dg
                     print newGame 
                     return newGame 
-
 
 playFromTable :: Game -> Char -> Char -> IO Game
 playFromTable game@(Game fg cg wg dg) cmd0 cmd1 

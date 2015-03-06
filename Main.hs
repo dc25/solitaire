@@ -48,26 +48,30 @@ cardColor (Card _ suit) = suitColor suit
 instance Show Card where
     show (Card rank suit) = [rankLetter rank, suitLetter suit]
 
+data Column = Column {
+              concealed :: [Card],
+              visible ::   [Card]
+              }
+
 data Game = Game {
          foundations :: [[Card]],
-         concealed ::   [[Card]],
-         visible ::     [[Card]],
+         columns ::     [Column],
          waste ::       [Card],
          deck ::        [Card]
          }
 
 display :: Game -> IO ()
-display game = do 
+display game@(Game fg cg wg dg) = do 
 
       let emptySpace = "__"
       let hiddenCard = "??"
       let noCard =     "  "
 
-      putStrLn $ unwords $ map (\f -> if null f then emptySpace else show $ head f) $ foundations game
-      putStrLn $ unwords $ map (\f -> if null f then emptySpace else hiddenCard) $ concealed game
+      putStrLn $ unwords $ map (\f -> if null f then emptySpace else show $ head f) fg
+      putStrLn $ unwords $ map (\f -> if null $ concealed f then emptySpace else hiddenCard) cg
 
       -- reverse visible stacks of cards to display bottom cards first
-      let vl = toVisibleLines $ map reverse $ visible game where
+      let vl = toVisibleLines $ map (reverse.visible) cg where
            toVisibleLines vg 
                 = if all null vg then [] 
                   else   unwords (map (\f -> if null f then noCard else show $ head f) vg) 
@@ -79,52 +83,56 @@ display game = do
                            if null $ waste game then emptySpace else show $ head $ waste game ]
 
 gameOver :: Game -> Bool
-gameOver game =    all null (visible game) 
-                && all null (concealed game) 
+gameOver game =    all null (map visible (columns game))
+                && all null (map concealed (columns game))
                 && null (waste game) 
                 && null (deck game) 
 
 
 -- deal a deck of cards out to the klondike layout
-start game = let (visible', concealed', deck') = deal (visible game) (concealed game) (deck game)
-             in Game (foundations game) concealed' visible' (waste game) deck'
-             where deal visible concealed deck = 
+start game@(Game fg cg wg dg) = let (columns', deck') = deal cg dg
+             in Game fg columns' wg deck'
+             where deal columns deck = 
                        -- stop dealing out cards when all stacks full
-                       if null visible then (visible, concealed, deck) 
+                       if null columns then (columns, deck) 
 
                        -- deal out one more row of cards 
                        -- and recurse for remaining rows
                        else let 
                                 -- one card up on first stack
-                                visibleHead = (head deck : head visible) 
+                                visibleHead = head deck : visible (head columns)
 
                                 -- no concealed cards on first stack (unchanged)
-                                concealedHead = head concealed 
+                                concealedHead = concealed $ head columns
 
                                 -- no cards up after first stack (unchanged)
-                                visibleTail = tail visible 
+                                visibleTail = map visible $ tail columns
 
                                 -- add concealed card to every stack past first
-                                concealedTail = zipWith (:) (tail deck) (tail concealed) 
+                                concealedTail = zipWith (:) (tail deck) $ map concealed (tail columns) 
+
+                                -- combine concealed and visible to get column
+                                columnsHead = Column concealedHead visibleHead
+
+                                -- zip concealed & visible to get columns
+                                columnsTail = zipWith Column concealedTail visibleTail
 
                                 -- remove used cards from deck
-                                remainingDeck = drop (length visible) deck
+                                remainingDeck = drop (length columns) deck
 
-                                -- recurse to deal onto visible/concealed tail
-                                (visibleTail', concealedTail', deck') 
-                                    = deal visibleTail concealedTail remainingDeck
+                                -- recurse to deal onto remaining columns
+                                (columns', deck') = deal columnsTail remainingDeck
 
-                             in (visibleHead : visibleTail', concealedHead : concealedTail', deck')
+                            in (columnsHead : columns', deck')
 
 main = do 
           shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
 
           let
               foundations = [[],[],[],[]]
-              concealed =   [[],[],[],[],[],[],[]]
-              visible =     [[],[],[],[],[],[],[]]
+              columns =     [ Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [] ]
               waste =       []
-              game = Game foundations concealed visible waste shuffledDeck
+              game = Game foundations columns waste shuffledDeck
               gameInPlay = start game
 
           display gameInPlay
@@ -140,16 +148,18 @@ goesOnColumn card concealed visible =
     || (not (null visible) && card `goesOn` head visible) 
 
 playFromDeck :: Game -> Char -> IO Game
-playFromDeck game@(Game fg cg vg wg dg) subCommand 
+playFromDeck game@(Game fg cg wg dg) subCommand 
         | subCommand >= '1' && subCommand <= '7'
             = let tableIndex = ord subCommand - ord '1'
-                  visibleColumn = vg !! tableIndex
-                  concealedColumn = cg !! tableIndex
+                  visibleColumn = visible $ cg !! tableIndex
+                  concealedColumn = concealed $ cg !! tableIndex
                   tableCard = head visibleColumn
                   deckCard = head (waste game)
               in if goesOnColumn deckCard concealedColumn visibleColumn then do
                      putStrLn $ "Putting " ++ show deckCard ++ " on column# " ++ show tableIndex
-                     let newGame = Game fg cg (take tableIndex vg ++ (deckCard : visibleColumn) : drop (tableIndex+1) vg) (drop 1 wg) dg
+                     let newColumn = Column concealedColumn (deckCard : visibleColumn) 
+                     let newColumns = take tableIndex cg ++ newColumn : drop (tableIndex+1) cg
+                     let newGame = Game fg  newColumns (drop 1 wg) dg 
                      display newGame
                      return newGame
                  else do
@@ -162,12 +172,12 @@ playFromTable :: Game -> Char -> IO Game
 playFromTable game subCommand = return game
 
 updateGame :: Game -> String -> IO Game
-updateGame game@(Game fg cg vg wg dg)  command
+updateGame game@(Game fg cg wg dg)  command
         | cmd0 == 'D' = if null dg then do 
                             putStrLn "No cards are available to Draw from.  Use 'R' to replenish."
                             return game
                         else do
-                            let newGame = Game fg cg vg (reverse (take 3 dg) ++ wg) (drop 3 dg)
+                            let newGame = Game fg cg (reverse (take 3 dg) ++ wg) (drop 3 dg)
                             display newGame 
                             return newGame
 
@@ -175,7 +185,7 @@ updateGame game@(Game fg cg vg wg dg)  command
                             putStrLn "Can not Replenish deck while it still contains cards."
                             return game
                         else do
-                            let newGame = Game fg cg vg [] (reverse wg)
+                            let newGame = Game fg cg [] (reverse wg)
                             display newGame 
                             return newGame
 
@@ -184,7 +194,7 @@ updateGame game@(Game fg cg vg wg dg)  command
         | cmd0 > '1' && cmd0 < '7' = playFromTable game cmd1
 
         | otherwise = do putStrLn $ "Invalid command: " ++ command
-                         return $ Game fg cg vg wg dg
+                         return $ Game fg cg wg dg
 
         where cmd0 = head command
               cmd1 = if length command > 1 then head $ tail command else ' '

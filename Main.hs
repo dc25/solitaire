@@ -145,14 +145,14 @@ main = do
 goesOnColumn card column@(Column concealed visible) = 
        (null visible  && null concealed && rank card == King ) 
     || (not (null visible) && card `goesOn` head visible) where
-            goesOn card0 card1 = 
+            card0 `goesOn` card1 = 
                    (cardColor card0 /= cardColor card1) 
                 && fromEnum (rank card0) + 1 == fromEnum (rank card1)
 
 goesOnFoundation card foundation =
        (null foundation  && rank card == Ace ) 
     || (not (null foundation) && card `goesOn` head foundation) where
-            goesOn card0 card1 = 
+            card0 `goesOn` card1 = 
                    (suit card0 == suit card1) 
                 && fromEnum (rank card0) == fromEnum (rank card1) + 1
 

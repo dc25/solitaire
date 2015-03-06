@@ -41,9 +41,10 @@ suitColor Clubs =    Black
 data Card = Card {
          rank :: Rank,
          suit :: Suit 
-         }
+         } 
 
 cardColor (Card _ suit) = suitColor suit
+
 
 instance Show Card where
     show (Card rank suit) = [rankLetter rank, suitLetter suit]
@@ -58,29 +59,29 @@ data Game = Game {
          columns ::     [Column],
          waste ::       [Card],
          deck ::        [Card]
-         }
+         } 
 
-display :: Game -> IO ()
-display game@(Game fg cg wg dg) = do 
+instance Show Game where
+    show game@(Game fg cg wg dg) = 
 
-      let emptySpace = "__"
-      let hiddenCard = "??"
-      let noCard =     "  "
+          let emptySpace = "__"
+              hiddenCard = "??"
+              noCard =     "  "
 
-      putStrLn $ unwords $ map (\f -> if null f then emptySpace else show $ head f) fg
-      putStrLn $ unwords $ map (\f -> if null $ concealed f then emptySpace else hiddenCard) cg
+              flines = unwords $ map (\f -> if null f then emptySpace else show $ head f) fg
+              clines = unwords $ map (\f -> if null $ concealed f then emptySpace else hiddenCard) cg
 
-      -- reverse visible stacks of cards to display bottom cards first
-      let vl = toVisibleLines $ map (reverse.visible) cg where
-           toVisibleLines vg 
-                = if all null vg then [] 
-                  else   unwords (map (\f -> if null f then noCard else show $ head f) vg) 
-                       : toVisibleLines (map (\f -> if null f then [] else tail f) vg)
+              vlines = toVisibleLines $ map (reverse.visible) cg where
+                   toVisibleLines vg 
+                        = if all null vg then [] 
+                          else   unwords (map (\f -> if null f then noCard else show $ head f) vg) 
+                               : toVisibleLines (map (\f -> if null f then [] else tail f) vg)
 
-      mapM_ putStrLn vl
+              dlines = unwords [ if null $ deck game then emptySpace else hiddenCard, 
+                               if null $ waste game then emptySpace else show $ head $ waste game ]
 
-      putStrLn $ unwords [ if null $ deck game then emptySpace else hiddenCard, 
-                           if null $ waste game then emptySpace else show $ head $ waste game ]
+              lines = flines:clines:vlines ++ [dlines]
+          in unlines lines
 
 gameOver :: Game -> Bool
 gameOver game@(Game fg cg wg dg) =    
@@ -137,7 +138,7 @@ main = do
               game = Game foundations columns waste shuffledDeck
               gameInPlay = start game
 
-          display gameInPlay
+          print gameInPlay
           updateLoop gameInPlay
           putStrLn "Game Over"
 
@@ -154,24 +155,41 @@ playFromDeck game@(Game fg cg wg dg) subCommand
         | subCommand >= '1' && subCommand <= '7'
             = let tableIndex = ord subCommand - ord '1'
                   column@(Column concealedColumn visibleColumn) = cg !! tableIndex
-                  tableCard = head visibleColumn
-                  deckCard = head wg
-              in if deckCard `goesOnColumn` column then do
-                     putStrLn $ "Putting " ++ show deckCard ++ " on column# " ++ show tableIndex
-                     let newColumn = Column concealedColumn (deckCard : visibleColumn) 
-                     let newColumns = take tableIndex cg ++ newColumn : drop (tableIndex+1) cg
-                     let newGame = Game fg  newColumns (drop 1 wg) dg 
-                     display newGame
-                     return newGame
-                 else do
-                     putStrLn $ "Can not put " ++ show deckCard ++ " on column# " ++ show tableIndex
-                     return game
+                  deckCard = head wg -- make sure to test before using
+              in 
+                  if not (null wg) then 
+                      if deckCard `goesOnColumn` column then do
+                          putStrLn $ "Putting " ++ show deckCard ++ " on column# " ++ show tableIndex
+                          let newColumn = Column concealedColumn (deckCard : visibleColumn) 
+                          let newColumns = take tableIndex cg ++ newColumn : drop (tableIndex+1) cg
+                          let newGame = Game fg  newColumns (drop 1 wg) dg 
+                          print newGame
+                          return newGame
+                      else do
+                          putStrLn $ "Can not put " ++ show deckCard ++ " on column# " ++ show tableIndex
+                          return game
+                  else do
+                      putStrLn "Can not play from empty deck."
+                      return game
 
-
-
-playFromTable :: Game -> Char -> IO Game
-playFromTable game subCommand = return game
-
+playFromTable :: Game -> Char -> Char -> IO Game
+playFromTable game@(Game fg cg wg dg) cmd0 cmd1 = return game
+--        | cmd1 >= '1' && cmd1 <= '7'
+--            = let index0 = ord cmd0 - ord '1'
+--                  column0@(Column concealedColumn0 visibleColumn0) = cg !! index0
+--                  index1 = ord cmd1 - ord '1'
+--                  column1@(Column concealedColumn1 visibleColumn1) = cg !! index0
+--              in if deckCard `goesOnColumn` column then do
+--                     putStrLn $ "Putting " ++ show deckCard ++ " on column# " ++ show tableIndex
+--                     let newColumn = Column concealedColumn (deckCard : visibleColumn) 
+--                     let newColumns = take tableIndex cg ++ newColumn : drop (tableIndex+1) cg
+--                     let newGame = Game fg  newColumns (drop 1 wg) dg 
+--                     print newGame
+--                     return newGame
+--                 else do
+--                     putStrLn $ "Can not put " ++ show deckCard ++ " on column# " ++ show tableIndex
+--                     return game
+--
 updateGame :: Game -> String -> IO Game
 updateGame game@(Game fg cg wg dg)  command
         | cmd0 == 'D' = if null dg then do 
@@ -179,7 +197,7 @@ updateGame game@(Game fg cg wg dg)  command
                             return game
                         else do
                             let newGame = Game fg cg (reverse (take 3 dg) ++ wg) (drop 3 dg)
-                            display newGame 
+                            print newGame 
                             return newGame
 
         | cmd0 == 'R' = if not (null dg) then do 
@@ -187,12 +205,12 @@ updateGame game@(Game fg cg wg dg)  command
                             return game
                         else do
                             let newGame = Game fg cg [] (reverse wg)
-                            display newGame 
+                            print newGame 
                             return newGame
 
         | cmd0 == 'P' = playFromDeck game cmd1
 
-        | cmd0 > '1' && cmd0 < '7' = playFromTable game cmd1
+        | cmd0 >= '1' && cmd0 <= '7' = playFromTable game cmd0 cmd1
 
         | otherwise = do putStrLn $ "Invalid command: " ++ command
                          return $ Game fg cg wg dg

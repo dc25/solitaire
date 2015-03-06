@@ -83,14 +83,16 @@ display game@(Game fg cg wg dg) = do
                            if null $ waste game then emptySpace else show $ head $ waste game ]
 
 gameOver :: Game -> Bool
-gameOver game =    all null (map visible (columns game))
-                && all null (map concealed (columns game))
-                && null (waste game) 
-                && null (deck game) 
+gameOver game@(Game fg cg wg dg) =    
+                   all null (map visible cg)
+                && all null (map concealed cg)
+                && null wg
+                && null dg
 
 
 -- deal a deck of cards out to the klondike layout
-start game@(Game fg cg wg dg) = let (columns', deck') = deal cg dg
+start game@(Game fg cg wg dg) = 
+             let (columns', deck') = deal cg dg
              in Game fg columns' wg deck'
              where deal columns deck = 
                        -- stop dealing out cards when all stacks full

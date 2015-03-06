@@ -143,7 +143,7 @@ goesOn :: Card -> Card -> Bool
 goesOn c0 c1 = (cardColor c0 /= cardColor c1) && fromEnum (rank c0) + 1 == fromEnum (rank c1)
 
 
-goesOnColumn card concealed visible = 
+goesOnColumn card column@(Column concealed visible) = 
        (null visible  && null concealed && rank card == King ) 
     || (not (null visible) && card `goesOn` head visible) 
 
@@ -151,11 +151,10 @@ playFromDeck :: Game -> Char -> IO Game
 playFromDeck game@(Game fg cg wg dg) subCommand 
         | subCommand >= '1' && subCommand <= '7'
             = let tableIndex = ord subCommand - ord '1'
-                  visibleColumn = visible $ cg !! tableIndex
-                  concealedColumn = concealed $ cg !! tableIndex
+                  column@(Column concealedColumn visibleColumn) = cg !! tableIndex
                   tableCard = head visibleColumn
-                  deckCard = head (waste game)
-              in if goesOnColumn deckCard concealedColumn visibleColumn then do
+                  deckCard = head wg
+              in if deckCard `goesOnColumn` column then do
                      putStrLn $ "Putting " ++ show deckCard ++ " on column# " ++ show tableIndex
                      let newColumn = Column concealedColumn (deckCard : visibleColumn) 
                      let newColumns = take tableIndex cg ++ newColumn : drop (tableIndex+1) cg

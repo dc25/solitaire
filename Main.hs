@@ -142,54 +142,143 @@ main = do
           updateLoop gameInPlay
           putStrLn "Game Over"
 
-goesOn :: Card -> Card -> Bool
-goesOn c0 c1 = (cardColor c0 /= cardColor c1) && fromEnum (rank c0) + 1 == fromEnum (rank c1)
-
-
 goesOnColumn card column@(Column concealed visible) = 
        (null visible  && null concealed && rank card == King ) 
-    || (not (null visible) && card `goesOn` head visible) 
+    || (not (null visible) && card `goesOn` head visible) where
+            goesOn card0 card1 = 
+                   (cardColor card0 /= cardColor card1) 
+                && fromEnum (rank card0) + 1 == fromEnum (rank card1)
 
-playFromDeck :: Game -> Char -> IO Game
-playFromDeck game@(Game fg cg wg dg) subCommand 
-        | subCommand >= '1' && subCommand <= '7'
-            = let tableIndex = ord subCommand - ord '1'
-                  column@(Column concealedColumn visibleColumn) = cg !! tableIndex
-                  deckCard = head wg -- make sure to test before using
-              in 
-                  if not (null wg) then 
-                      if deckCard `goesOnColumn` column then do
-                          putStrLn $ "Putting " ++ show deckCard ++ " on column# " ++ show tableIndex
-                          let newColumn = Column concealedColumn (deckCard : visibleColumn) 
-                          let newColumns = take tableIndex cg ++ newColumn : drop (tableIndex+1) cg
-                          let newGame = Game fg  newColumns (drop 1 wg) dg 
-                          print newGame
-                          return newGame
-                      else do
-                          putStrLn $ "Can not put " ++ show deckCard ++ " on column# " ++ show tableIndex
-                          return game
-                  else do
-                      putStrLn "Can not play from empty deck."
-                      return game
+goesOnFoundation card foundation =
+       (null foundation  && rank card == Ace ) 
+    || (not (null foundation) && card `goesOn` head foundation) where
+            goesOn card0 card1 = 
+                   (suit card0 == suit card1) 
+                && fromEnum (rank card0) == fromEnum (rank card1) + 1
+
+playColumnToFoundation :: Game -> Int -> Int -> IO Game
+playColumnToFoundation game@(Game fg cg wg dg) index0 index1 
+                | null.visible $ cg !! index0 = do
+                    putStrLn $ "Can not move cards from empty column: " ++ show (index0+1)
+                    return game
+
+                | not $ (head.visible $ cg !! index0) `goesOnFoundation` (fg !! index1) = do
+                    putStrLn $ "Can not move card from column: " ++ show (index0+1) ++ " to foundation: " ++ [chr (ord 'A' + index1)]
+                    return game
+                  
+                | (null.concealed) (cg !! index0) = do
+                    let newColumn0 = Column [] []
+                    let newColumns0 = take index0 cg ++ newColumn0 : drop (index0+1) cg
+
+                    let newFoundation = (head.visible) (cg !! index0) : (fg !! index1)
+                    let newFoundations = take index1 fg ++ newFoundation : drop (index1+1) fg
+
+                    let newGame = Game newFoundations  newColumns0 wg dg 
+                    print newGame 
+                    return newGame 
+
+                | otherwise = do
+                    let newColumn0 = Column (tail.concealed $ cg !! index0) [head.concealed $ cg !! index0]
+                    let newColumns0 = take index0 cg ++ newColumn0 : drop (index0+1) cg
+
+                    let newFoundation = (head.visible) (cg !! index0) : (fg !! index1)
+                    let newFoundations = take index1 fg ++ newFoundation : drop (index1+1) fg
+
+                    let newGame = Game newFoundations  newColumns0 wg dg 
+                    print newGame 
+                    return newGame 
+
+playColumnToColumn :: Game -> Int -> Int -> IO Game
+playColumnToColumn game@(Game fg cg wg dg) index0 index1 
+                | index0 == index1 = do
+                    putStrLn "Can not move cards from a column to itself."
+                    return game
+
+                | null.visible $ cg !! index0 = do
+                    putStrLn $ "Can not move cards from empty column: " ++ show (index0+1)
+                    return game
+
+                | not $ (last.visible $ cg !! index0) `goesOnColumn` (cg !! index1) = do
+                    putStrLn $ "Can not move cards from column: " ++ show (index0+1) ++ " to column: " ++ show (index1+1)
+                    return game
+                  
+                | (null.concealed) (cg !! index0) = do
+                    let newColumn0 = Column [] []
+                    let newColumns0 = take index0 cg ++ newColumn0 : drop (index0+1) cg
+
+                    let newColumn1 = Column (concealed $ cg !! index1) (visible (cg !! index0) ++ visible (cg !! index1))
+                    let newColumns1 = take index1 newColumns0 ++ newColumn1 : drop (index1+1) newColumns0
+
+                    let newGame = Game fg  newColumns1 wg dg 
+                    print newGame 
+                    return newGame 
+
+                | otherwise = do
+                    let newColumn0 = Column (tail.concealed $ cg !! index0) [head.concealed $ cg !! index0]
+                    let newColumns0 = take index0 cg ++ newColumn0 : drop (index0+1) cg
+
+                    let newColumn1 = Column (concealed $ cg !! index1) (visible (cg !! index0) ++ visible (cg !! index1))
+                    let newColumns1 = take index1 newColumns0 ++ newColumn1 : drop (index1+1) newColumns0
+
+                    let newGame = Game fg  newColumns1 wg dg 
+                    print newGame 
+                    return newGame 
+
+playDeckToColumn :: Game -> Int -> IO Game
+playDeckToColumn game@(Game fg cg wg dg) index1 
+                | null wg = do
+                    putStrLn "Can not play from empty deck." 
+                    return game
+
+                | not $ head wg `goesOnColumn` (cg !! index1) = do
+                    putStrLn $ "Can not move cards from deck to column: " ++ show (index1+1)
+                    return game
+                  
+                | otherwise = do
+                    let newDeck = tail wg
+
+                    let newColumn1 = Column (concealed $ cg !! index1) (head wg : visible (cg !! index1))
+                    let newColumns1 = take index1 cg ++ newColumn1 : drop (index1+1) cg
+
+                    let newGame = Game fg  newColumns1 newDeck dg
+                    print newGame 
+                    return newGame 
+
+playDeckToFoundation :: Game -> Int -> IO Game
+playDeckToFoundation game@(Game fg cg wg dg) index1 
+                | null wg = do
+                    putStrLn "Can not play from empty deck." 
+                    return game
+
+                | not $ head wg `goesOnFoundation` (fg !! index1) = do
+                    putStrLn $ "Can not move cards from deck to foundation: " ++ [chr (ord 'A' + index1)]
+                    return game
+                  
+                | otherwise = do
+                    let newDeck = tail wg
+
+                    let newFoundation = head wg : (fg !! index1)
+                    let newFoundations = take index1 fg ++ newFoundation : drop (index1+1) fg
+
+                    let newGame = Game newFoundations cg newDeck dg
+                    print newGame 
+                    return newGame 
+
 
 playFromTable :: Game -> Char -> Char -> IO Game
-playFromTable game@(Game fg cg wg dg) cmd0 cmd1 = return game
---        | cmd1 >= '1' && cmd1 <= '7'
---            = let index0 = ord cmd0 - ord '1'
---                  column0@(Column concealedColumn0 visibleColumn0) = cg !! index0
---                  index1 = ord cmd1 - ord '1'
---                  column1@(Column concealedColumn1 visibleColumn1) = cg !! index0
---              in if deckCard `goesOnColumn` column then do
---                     putStrLn $ "Putting " ++ show deckCard ++ " on column# " ++ show tableIndex
---                     let newColumn = Column concealedColumn (deckCard : visibleColumn) 
---                     let newColumns = take tableIndex cg ++ newColumn : drop (tableIndex+1) cg
---                     let newGame = Game fg  newColumns (drop 1 wg) dg 
---                     print newGame
---                     return newGame
---                 else do
---                     putStrLn $ "Can not put " ++ show deckCard ++ " on column# " ++ show tableIndex
---                     return game
---
+playFromTable game@(Game fg cg wg dg) cmd0 cmd1 
+          | cmd1 >= '1' && cmd1 <= '7' = 
+              playColumnToColumn game (ord cmd0 - ord '1') (ord cmd1 - ord '1') 
+          | cmd1 >= 'A' && cmd1 <= 'D' = 
+              playColumnToFoundation game (ord cmd0 - ord '1') (ord cmd1 - ord 'A') 
+  
+playFromDeck :: Game -> Char -> IO Game
+playFromDeck game@(Game fg cg wg dg) cmd1 
+          | cmd1 >= '1' && cmd1 <= '7' =
+              playDeckToColumn game (ord cmd1 - ord '1') 
+          | cmd1 >= 'A' && cmd1 <= 'D' = 
+              playDeckToFoundation game (ord cmd1 - ord 'A') 
+
 updateGame :: Game -> String -> IO Game
 updateGame game@(Game fg cg wg dg)  command
         | cmd0 == 'D' = if null dg then do 

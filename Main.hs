@@ -63,7 +63,6 @@ data Game = Game {
 
 instance Show Game where
     show game@(Game fg cg dg rg) = 
-
           let emptySpace = "__"
               hiddenCard = "??"
               noCard =     "  "
@@ -77,8 +76,8 @@ instance Show Game where
                           else   unwords (map (\f -> if null f then noCard else show $ head f) vg) 
                                : toVisibleLines (map (\f -> if null f then [] else tail f) vg)
 
-              dlines = unwords [ if null $ reserves game then emptySpace else hiddenCard, 
-                               if null $ deck game then emptySpace else show $ head $ deck game ]
+              dlines = unwords [ if null rg then emptySpace else hiddenCard, 
+                               if null dg then emptySpace else show $ head dg ]
 
               lines = flines:clines:vlines ++ [dlines]
           in unlines lines

@@ -236,6 +236,12 @@ fromDeckToFoundation game@(Game fg cg dg rg) index1 =
         newFoundations = addToFoundations fg index1 removedCard
     in Game newFoundations  cg newDeck rg
 
+fromReservesToDeck game@(Game fg cg dg rg) = 
+    Game fg cg (reverse (take 3 rg) ++ dg) (drop 3 rg)
+
+fromDeckToReserves game@(Game fg cg dg rg) = 
+    Game fg cg [] (reverse dg)
+
 -- Helper function
 printAndReturn :: Game -> IO Game
 printAndReturn game = do
@@ -306,6 +312,9 @@ playFromTable game@(Game fg cg dg rg) cmd0 cmd1
               playColumnToColumn game (ord cmd0 - ord '1') (ord cmd1 - ord '1') 
           | cmd1 >= 'A' && cmd1 <= 'D' = 
               playColumnToFoundation game (ord cmd0 - ord '1') (ord cmd1 - ord 'A') 
+          | otherwise = do
+              putStrLn "Invalid command." 
+              return game
   
 playFromDeck :: Game -> Char -> IO Game
 playFromDeck game@(Game fg cg dg rg) cmd1 
@@ -313,24 +322,23 @@ playFromDeck game@(Game fg cg dg rg) cmd1
               playDeckToColumn game (ord cmd1 - ord '1') 
           | cmd1 >= 'A' && cmd1 <= 'D' = 
               playDeckToFoundation game (ord cmd1 - ord 'A') 
+          | otherwise = do
+              putStrLn "Invalid command." 
+              return game
 
 updateGame :: Game -> String -> IO Game
 updateGame game@(Game fg cg dg rg)  command
         | cmd0 == 'D' = if null rg then do 
                             putStrLn "No cards are available to Draw from.  Use 'R' to replenish."
                             return game
-                        else do
-                            let newGame = Game fg cg (reverse (take 3 rg) ++ dg) (drop 3 rg)
-                            print newGame 
-                            return newGame
+                        else 
+                            printAndReturn $ fromReservesToDeck game
 
         | cmd0 == 'R' = if not (null rg) then do 
                             putStrLn "Can not Replenish reserves while it still contains cards."
                             return game
-                        else do
-                            let newGame = Game fg cg [] (reverse dg)
-                            print newGame 
-                            return newGame
+                        else 
+                            printAndReturn $ fromDeckToReserves game
 
         | cmd0 == 'P' = playFromDeck game cmd1
 

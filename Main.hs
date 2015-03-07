@@ -90,42 +90,13 @@ gameOver game@(Game fg cg dg rg) =
                 && null rg
 
 
--- deal a deck of cards out to the klondike layout
-start game@(Game fg cg dg rg) = 
-            let (columns', reserves') = deal cg rg
-            in Game fg columns' dg reserves'
-            where 
-                -- stop dealing out cards when all stacks full
-                deal columns@[] reserves = (columns, reserves)
+---------------------------------------------------------
+-- The following routines operate on one part 
+-- (columns or foundations or deck or reserves ) 
+-- of a game.
+---------------------------------------------------------
 
-                deal columns reserves = 
-                    let 
-                        -- one card up on first stack
-                        visibleHead = head reserves : visible (head columns)
-
-                        -- no concealed cards on first stack (unchanged)
-                        concealedHead = concealed $ head columns
-
-                        -- no cards up after first stack (unchanged)
-                        visibleTail = map visible $ tail columns
-
-                        -- add concealed card to every stack past first
-                        concealedTail = zipWith (:) (tail reserves) $ map concealed (tail columns) 
-
-                        -- combine concealed and visible to get column
-                        columnsHead = Column concealedHead visibleHead
-
-                        -- zip concealed & visible to get columns
-                        columnsTail = zipWith Column concealedTail visibleTail
-
-                        -- remove used cards from reserves
-                        remainingDeck = drop (length columns) reserves
-
-                        -- recurse to deal onto remaining columns
-                        (columns', reserves') = deal columnsTail remainingDeck
-
-                    in (columnsHead : columns', reserves')
-
+-- Utility functions
 goesOnColumn card column@(Column [] []) = rank card == King
 goesOnColumn card column@(Column _ (vh:vt)) = 
     (cardColor card /= cardColor vh) && fromEnum (rank card) + 1 == fromEnum (rank vh)
@@ -133,12 +104,6 @@ goesOnColumn card column@(Column _ (vh:vt)) =
 goesOnFoundation card [] = rank card == Ace 
 goesOnFoundation card (fh:ft) =
     (suit card == suit fh) && fromEnum (rank card) == fromEnum (rank fh) + 1
-
----------------------------------------------------------
--- The following routines operate on one part 
--- (columns or foundations or deck or reserves ) 
--- of a game.
----------------------------------------------------------
 
 -- if the visible portion of a column is empty
 -- then "replenish" it with one card from the concealed
@@ -186,6 +151,42 @@ addOneToColumns cg index1 card =
 ---------------------------------------------------------
 -- The following routines operate on an entire game.
 ---------------------------------------------------------
+
+-- deal a deck of cards out to the klondike layout
+start game@(Game fg cg dg rg) = 
+            let (columns', reserves') = deal cg rg
+            in Game fg columns' dg reserves'
+            where 
+                -- stop dealing out cards when all stacks full
+                deal columns@[] reserves = (columns, reserves)
+
+                deal columns reserves = 
+                    let 
+                        -- one card up on first stack
+                        visibleHead = head reserves : visible (head columns)
+
+                        -- no concealed cards on first stack (unchanged)
+                        concealedHead = concealed $ head columns
+
+                        -- no cards up after first stack (unchanged)
+                        visibleTail = map visible $ tail columns
+
+                        -- add concealed card to every stack past first
+                        concealedTail = zipWith (:) (tail reserves) $ map concealed (tail columns) 
+
+                        -- combine concealed and visible to get column
+                        columnsHead = Column concealedHead visibleHead
+
+                        -- zip concealed & visible to get columns
+                        columnsTail = zipWith Column concealedTail visibleTail
+
+                        -- remove used cards from reserves
+                        remainingDeck = drop (length columns) reserves
+
+                        -- recurse to deal onto remaining columns
+                        (columns', reserves') = deal columnsTail remainingDeck
+
+                    in (columnsHead : columns', reserves')
 
 fromColumnToFoundation :: Game -> Int -> Int -> Game
 fromColumnToFoundation game@(Game fg cg dg rg) index0 index1 =

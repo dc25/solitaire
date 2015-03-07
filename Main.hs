@@ -92,40 +92,39 @@ gameOver game@(Game fg cg dg rg) =
 
 -- deal a deck of cards out to the klondike layout
 start game@(Game fg cg dg rg) = 
-             let (columns', reserves') = deal cg rg
-             in Game fg columns' dg reserves'
-             where deal columns reserves = 
-                       -- stop dealing out cards when all stacks full
-                       if null columns then (columns, reserves) 
+            let (columns', reserves') = deal cg rg
+            in Game fg columns' dg reserves'
+            where 
+                -- stop dealing out cards when all stacks full
+                deal columns@[] reserves = (columns, reserves)
 
-                       -- deal out one more row of cards 
-                       -- and recurse for remaining rows
-                       else let 
-                                -- one card up on first stack
-                                visibleHead = head reserves : visible (head columns)
+                deal columns reserves = 
+                    let 
+                        -- one card up on first stack
+                        visibleHead = head reserves : visible (head columns)
 
-                                -- no concealed cards on first stack (unchanged)
-                                concealedHead = concealed $ head columns
+                        -- no concealed cards on first stack (unchanged)
+                        concealedHead = concealed $ head columns
 
-                                -- no cards up after first stack (unchanged)
-                                visibleTail = map visible $ tail columns
+                        -- no cards up after first stack (unchanged)
+                        visibleTail = map visible $ tail columns
 
-                                -- add concealed card to every stack past first
-                                concealedTail = zipWith (:) (tail reserves) $ map concealed (tail columns) 
+                        -- add concealed card to every stack past first
+                        concealedTail = zipWith (:) (tail reserves) $ map concealed (tail columns) 
 
-                                -- combine concealed and visible to get column
-                                columnsHead = Column concealedHead visibleHead
+                        -- combine concealed and visible to get column
+                        columnsHead = Column concealedHead visibleHead
 
-                                -- zip concealed & visible to get columns
-                                columnsTail = zipWith Column concealedTail visibleTail
+                        -- zip concealed & visible to get columns
+                        columnsTail = zipWith Column concealedTail visibleTail
 
-                                -- remove used cards from reserves
-                                remainingDeck = drop (length columns) reserves
+                        -- remove used cards from reserves
+                        remainingDeck = drop (length columns) reserves
 
-                                -- recurse to deal onto remaining columns
-                                (columns', reserves') = deal columnsTail remainingDeck
+                        -- recurse to deal onto remaining columns
+                        (columns', reserves') = deal columnsTail remainingDeck
 
-                            in (columnsHead : columns', reserves')
+                    in (columnsHead : columns', reserves')
 
 goesOnColumn card column@(Column [] []) = rank card == King
 goesOnColumn card column@(Column _ (vh:vt)) = 
@@ -220,17 +219,18 @@ fromReservesToDeck game@(Game fg cg dg rg) =
 fromDeckToReserves game@(Game fg cg dg rg) = 
     Game fg cg [] (reverse dg)
 
+-------------------------------------------------------------
+-- The following routines do semantic checking and then
+-- carry out a command.  By semantic checking I mean: make 
+-- sure the command makes sense given the current game state.
+-------------------------------------------------------------
+
 -- Helper function
 printAndReturn :: Game -> IO Game
 printAndReturn game = do
     print game
     return game
 
--------------------------------------------------------------
--- The following routines do semantic checking and then
--- carry out a command.  By semantic checking I mean: make 
--- sure the command makes sense given the current game state.
--------------------------------------------------------------
 
 playColumnToFoundation :: Game -> Int -> Int -> IO Game
 playColumnToFoundation game@(Game fg cg dg rg) index0 index1 

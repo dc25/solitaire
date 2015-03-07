@@ -127,20 +127,6 @@ start game@(Game fg cg dg rg) =
 
                             in (columnsHead : columns', reserves')
 
-main = do 
-          shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
-
-          let
-              foundations = [[],[],[],[]]
-              columns =     [ Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [] ]
-              deck =       []
-              game = Game foundations columns deck shuffledDeck
-              gameInPlay = start game
-
-          print gameInPlay
-          updateLoop gameInPlay
-          putStrLn "Game Over"
-
 goesOnColumn card column@(Column [] []) = rank card == King
 goesOnColumn card column@(Column _ (vh:vt)) = 
     (cardColor card /= cardColor vh) && fromEnum (rank card) + 1 == fromEnum (rank vh)
@@ -348,4 +334,18 @@ updateLoop game =
         command <- getLine
         updatedGame <- updateGame game command
         updateLoop updatedGame
+
+main = do 
+          shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
+
+          let
+              foundations = [[],[],[],[]]
+              columns =     [ Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [] ]
+              deck =       []
+              game = Game foundations columns deck shuffledDeck
+              gameInPlay = start game
+
+          print gameInPlay
+          updateLoop gameInPlay
+          putStrLn "Game Over"
 

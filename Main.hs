@@ -71,10 +71,10 @@ instance Show Game where
               clines = unwords $ map (\f -> if null $ concealed f then emptySpace else hiddenCard) cg
 
               vlines = toVisibleLines $ map (reverse.visible) cg where
-                   toVisibleLines vg 
-                        = if all null vg then [] 
-                          else   unwords (map (\f -> if null f then noCard else show $ head f) vg) 
-                               : toVisibleLines (map (\f -> if null f then [] else tail f) vg)
+                   toVisibleLines vg@[[],[],[],[],[],[],[]] = []
+                   toVisibleLines vg =
+                         unwords (map (\f -> if null f then noCard else show $ head f) vg) 
+                       : toVisibleLines (map (\f -> if null f then [] else tail f) vg)
 
               dlines = unwords [ if null rg then emptySpace else hiddenCard, 
                                if null dg then emptySpace else show $ head dg ]

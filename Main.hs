@@ -338,7 +338,7 @@ updateGame game@(Game fg cg wg dg)  command
         | cmd0 >= '1' && cmd0 <= '7' = playFromTable game cmd0 cmd1
 
         | otherwise = do putStrLn $ "Invalid command: " ++ command
-                         return $ Game fg cg wg dg
+                         return game
 
         where cmd0 = head command
               cmd1 = if length command > 1 then head $ tail command else ' '

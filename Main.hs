@@ -141,19 +141,13 @@ main = do
           updateLoop gameInPlay
           putStrLn "Game Over"
 
-goesOnColumn card column@(Column concealed visible) = 
-       (null visible  && null concealed && rank card == King ) 
-    || (not (null visible) && card `goesOn` head visible) where
-            card0 `goesOn` card1 = 
-                   (cardColor card0 /= cardColor card1) 
-                && fromEnum (rank card0) + 1 == fromEnum (rank card1)
+goesOnColumn card column@(Column [] []) = rank card == King
+goesOnColumn card column@(Column _ (vh:vt)) = 
+    (cardColor card /= cardColor vh) && fromEnum (rank card) + 1 == fromEnum (rank vh)
 
-goesOnFoundation card foundation =
-       (null foundation  && rank card == Ace ) 
-    || (not (null foundation) && card `goesOn` head foundation) where
-            card0 `goesOn` card1 = 
-                   (suit card0 == suit card1) 
-                && fromEnum (rank card0) == fromEnum (rank card1) + 1
+goesOnFoundation card [] = rank card == Ace 
+goesOnFoundation card (fh:ft) =
+    (suit card == suit fh) && fromEnum (rank card) == fromEnum (rank fh) + 1
 
 ---------------------------------------------------------
 -- The following routines operate on one part 
@@ -165,10 +159,8 @@ goesOnFoundation card foundation =
 -- then "replenish" it with one card from the concealed
 -- portion of the column
 replenishColumn :: Column -> Column
-replenishColumn column@(Column concealed  visible) =
-    if null visible && not (null concealed)
-    then Column (tail concealed) [head concealed]
-    else column
+replenishColumn column@(Column (ch:ct)  []) = Column ct [ch]
+replenishColumn column = column
 
 -- check for empty column has already been done; assert ??
 removeOneFromColumn :: [Column] -> Int -> ([Column], Card)

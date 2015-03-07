@@ -57,12 +57,12 @@ data Column = Column {
 data Game = Game {
          foundations :: [[Card]],
          columns ::     [Column],
-         waste ::       [Card],
-         deck ::        [Card]
+         deck ::       [Card],
+         reserves ::    [Card]
          } 
 
 instance Show Game where
-    show game@(Game fg cg wg dg) = 
+    show game@(Game fg cg dg rg) = 
 
           let emptySpace = "__"
               hiddenCard = "??"
@@ -77,33 +77,33 @@ instance Show Game where
                           else   unwords (map (\f -> if null f then noCard else show $ head f) vg) 
                                : toVisibleLines (map (\f -> if null f then [] else tail f) vg)
 
-              dlines = unwords [ if null $ deck game then emptySpace else hiddenCard, 
-                               if null $ waste game then emptySpace else show $ head $ waste game ]
+              dlines = unwords [ if null $ reserves game then emptySpace else hiddenCard, 
+                               if null $ deck game then emptySpace else show $ head $ deck game ]
 
               lines = flines:clines:vlines ++ [dlines]
           in unlines lines
 
 gameOver :: Game -> Bool
-gameOver game@(Game fg cg wg dg) =    
+gameOver game@(Game fg cg dg rg) =    
                    all null (map visible cg)
                 && all null (map concealed cg)
-                && null wg
                 && null dg
+                && null rg
 
 
 -- deal a deck of cards out to the klondike layout
-start game@(Game fg cg wg dg) = 
-             let (columns', deck') = deal cg dg
-             in Game fg columns' wg deck'
-             where deal columns deck = 
+start game@(Game fg cg dg rg) = 
+             let (columns', reserves') = deal cg rg
+             in Game fg columns' dg reserves'
+             where deal columns reserves = 
                        -- stop dealing out cards when all stacks full
-                       if null columns then (columns, deck) 
+                       if null columns then (columns, reserves) 
 
                        -- deal out one more row of cards 
                        -- and recurse for remaining rows
                        else let 
                                 -- one card up on first stack
-                                visibleHead = head deck : visible (head columns)
+                                visibleHead = head reserves : visible (head columns)
 
                                 -- no concealed cards on first stack (unchanged)
                                 concealedHead = concealed $ head columns
@@ -112,7 +112,7 @@ start game@(Game fg cg wg dg) =
                                 visibleTail = map visible $ tail columns
 
                                 -- add concealed card to every stack past first
-                                concealedTail = zipWith (:) (tail deck) $ map concealed (tail columns) 
+                                concealedTail = zipWith (:) (tail reserves) $ map concealed (tail columns) 
 
                                 -- combine concealed and visible to get column
                                 columnsHead = Column concealedHead visibleHead
@@ -120,13 +120,13 @@ start game@(Game fg cg wg dg) =
                                 -- zip concealed & visible to get columns
                                 columnsTail = zipWith Column concealedTail visibleTail
 
-                                -- remove used cards from deck
-                                remainingDeck = drop (length columns) deck
+                                -- remove used cards from reserves
+                                remainingDeck = drop (length columns) reserves
 
                                 -- recurse to deal onto remaining columns
-                                (columns', deck') = deal columnsTail remainingDeck
+                                (columns', reserves') = deal columnsTail remainingDeck
 
-                            in (columnsHead : columns', deck')
+                            in (columnsHead : columns', reserves')
 
 main = do 
           shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
@@ -134,8 +134,8 @@ main = do
           let
               foundations = [[],[],[],[]]
               columns =     [ Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [] ]
-              waste =       []
-              game = Game foundations columns waste shuffledDeck
+              deck =       []
+              game = Game foundations columns deck shuffledDeck
               gameInPlay = start game
 
           print gameInPlay
@@ -158,7 +158,7 @@ goesOnFoundation card foundation =
 
 ---------------------------------------------------------
 -- The following routines operate on one part 
--- (columns or foundations or waste or deck ) 
+-- (columns or foundations or deck or reserves ) 
 -- of a game.
 ---------------------------------------------------------
 
@@ -212,30 +212,30 @@ addOneToColumns cg index1 card =
 ---------------------------------------------------------
 
 fromColumnToFoundation :: Game -> Int -> Int -> Game
-fromColumnToFoundation game@(Game fg cg wg dg) index0 index1 =
+fromColumnToFoundation game@(Game fg cg dg rg) index0 index1 =
     let (newColumns0,removedCard) = removeOneFromColumn cg index0
         newFoundations = addToFoundations fg index1 removedCard
-    in Game newFoundations  newColumns0 wg dg 
+    in Game newFoundations  newColumns0 dg rg 
 
 fromColumnToColumn :: Game -> Int -> Int -> Game
-fromColumnToColumn game@(Game fg cg wg dg) index0 index1 =
+fromColumnToColumn game@(Game fg cg dg rg) index0 index1 =
     let (newColumns0,removedCards) = removeAllFromColumn cg index0
         newColumns1 = addToColumns newColumns0 index1 removedCards
-    in Game fg  newColumns1 wg dg 
+    in Game fg  newColumns1 dg rg 
 
 fromDeckToColumn :: Game -> Int -> Game
-fromDeckToColumn game@(Game fg cg wg dg) index1 =
-    let newDeck = tail wg
-        removedCard = head wg
+fromDeckToColumn game@(Game fg cg dg rg) index1 =
+    let newDeck = tail dg
+        removedCard = head dg
         newColumns = addOneToColumns cg index1 removedCard
-    in  Game fg newColumns newDeck dg
+    in  Game fg newColumns newDeck rg
 
 fromDeckToFoundation :: Game -> Int -> Game
-fromDeckToFoundation game@(Game fg cg wg dg) index1 =
-    let newDeck = tail wg
-        removedCard = head wg
+fromDeckToFoundation game@(Game fg cg dg rg) index1 =
+    let newDeck = tail dg
+        removedCard = head dg
         newFoundations = addToFoundations fg index1 removedCard
-    in Game newFoundations  cg newDeck dg
+    in Game newFoundations  cg newDeck rg
 
 -- Helper function
 printAndReturn :: Game -> IO Game
@@ -250,7 +250,7 @@ printAndReturn game = do
 -------------------------------------------------------------
 
 playColumnToFoundation :: Game -> Int -> Int -> IO Game
-playColumnToFoundation game@(Game fg cg wg dg) index0 index1 
+playColumnToFoundation game@(Game fg cg dg rg) index0 index1 
                 | null.visible $ cg !! index0 = do
                     putStrLn $ "Can not move cards from empty column: " ++ show (index0+1)
                     return game
@@ -262,7 +262,7 @@ playColumnToFoundation game@(Game fg cg wg dg) index0 index1
                 | otherwise = printAndReturn $ fromColumnToFoundation game index0 index1
 
 playColumnToColumn :: Game -> Int -> Int -> IO Game
-playColumnToColumn game@(Game fg cg wg dg) index0 index1 
+playColumnToColumn game@(Game fg cg dg rg) index0 index1 
                 | index0 == index1 = do
                     putStrLn "Can not move cards from a column to itself."
                     return game
@@ -278,58 +278,58 @@ playColumnToColumn game@(Game fg cg wg dg) index0 index1
                 | otherwise = printAndReturn $ fromColumnToColumn game index0 index1
 
 playDeckToColumn :: Game -> Int -> IO Game
-playDeckToColumn game@(Game fg cg wg dg) index1 
-                | null wg = do
+playDeckToColumn game@(Game fg cg dg rg) index1 
+                | null dg = do
                     putStrLn "Can not play from empty deck." 
                     return game
 
-                | not $ head wg `goesOnColumn` (cg !! index1) = do
-                    putStrLn $ "Can not move cards from deck to column: " ++ show (index1+1)
+                | not $ head dg `goesOnColumn` (cg !! index1) = do
+                    putStrLn $ "Can not move cards from reserves to column: " ++ show (index1+1)
                     return game
                   
                 | otherwise = printAndReturn $ fromDeckToColumn game index1 
 
 playDeckToFoundation :: Game -> Int -> IO Game
-playDeckToFoundation game@(Game fg cg wg dg) index1 
-                | null wg = do
+playDeckToFoundation game@(Game fg cg dg rg) index1 
+                | null dg = do
                     putStrLn "Can not play from empty deck." 
                     return game
 
-                | not $ head wg `goesOnFoundation` (fg !! index1) = do
-                    putStrLn $ "Can not move cards from deck to foundation: " ++ [chr (ord 'A' + index1)]
+                | not $ head dg `goesOnFoundation` (fg !! index1) = do
+                    putStrLn $ "Can not move cards from reserves to foundation: " ++ [chr (ord 'A' + index1)]
                     return game
                   
                 | otherwise = printAndReturn $ fromDeckToFoundation game index1 
 
 playFromTable :: Game -> Char -> Char -> IO Game
-playFromTable game@(Game fg cg wg dg) cmd0 cmd1 
+playFromTable game@(Game fg cg dg rg) cmd0 cmd1 
           | cmd1 >= '1' && cmd1 <= '7' = 
               playColumnToColumn game (ord cmd0 - ord '1') (ord cmd1 - ord '1') 
           | cmd1 >= 'A' && cmd1 <= 'D' = 
               playColumnToFoundation game (ord cmd0 - ord '1') (ord cmd1 - ord 'A') 
   
 playFromDeck :: Game -> Char -> IO Game
-playFromDeck game@(Game fg cg wg dg) cmd1 
+playFromDeck game@(Game fg cg dg rg) cmd1 
           | cmd1 >= '1' && cmd1 <= '7' =
               playDeckToColumn game (ord cmd1 - ord '1') 
           | cmd1 >= 'A' && cmd1 <= 'D' = 
               playDeckToFoundation game (ord cmd1 - ord 'A') 
 
 updateGame :: Game -> String -> IO Game
-updateGame game@(Game fg cg wg dg)  command
-        | cmd0 == 'D' = if null dg then do 
+updateGame game@(Game fg cg dg rg)  command
+        | cmd0 == 'D' = if null rg then do 
                             putStrLn "No cards are available to Draw from.  Use 'R' to replenish."
                             return game
                         else do
-                            let newGame = Game fg cg (reverse (take 3 dg) ++ wg) (drop 3 dg)
+                            let newGame = Game fg cg (reverse (take 3 rg) ++ dg) (drop 3 rg)
                             print newGame 
                             return newGame
 
-        | cmd0 == 'R' = if not (null dg) then do 
-                            putStrLn "Can not Replenish deck while it still contains cards."
+        | cmd0 == 'R' = if not (null rg) then do 
+                            putStrLn "Can not Replenish reserves while it still contains cards."
                             return game
                         else do
-                            let newGame = Game fg cg [] (reverse wg)
+                            let newGame = Game fg cg [] (reverse dg)
                             print newGame 
                             return newGame
 

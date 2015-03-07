@@ -57,7 +57,7 @@ data Column = Column {
 data Game = Game {
          foundations :: [[Card]],
          columns ::     [Column],
-         deck ::       [Card],
+         deck ::        [Card],
          reserves ::    [Card]
          } 
 
@@ -268,7 +268,7 @@ playDeckToColumn game@(Game fg cg dg rg) index1
                     return game
 
                 | not $ head dg `goesOnColumn` (cg !! index1) = do
-                    putStrLn $ "Can not move cards from reserves to column: " ++ show (index1+1)
+                    putStrLn $ "Can not move cards from deck to column: " ++ show (index1+1)
                     return game
                   
                 | otherwise = printAndReturn $ fromDeckToColumn game index1 
@@ -280,7 +280,7 @@ playDeckToFoundation game@(Game fg cg dg rg) index1
                     return game
 
                 | not $ head dg `goesOnFoundation` (fg !! index1) = do
-                    putStrLn $ "Can not move cards from reserves to foundation: " ++ [chr (ord 'A' + index1)]
+                    putStrLn $ "Can not move cards from deck to foundation: " ++ [chr (ord 'A' + index1)]
                     return game
                   
                 | otherwise = printAndReturn $ fromDeckToFoundation game index1 

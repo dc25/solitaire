@@ -339,8 +339,8 @@ main = do
           shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
 
           let
-              foundations = [[],[],[],[]]
-              columns =     [ Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [], Column [] [] ]
+              foundations = replicate 4 []
+              columns =     replicate 7 $ Column [] []
               deck =       []
               game = Game foundations columns deck shuffledDeck
               gameInPlay = start game

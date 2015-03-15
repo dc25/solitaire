@@ -1,0 +1,37 @@
+Why solitare?
+
+More complicated than euler.
+Not too complicated
+Single person
+Lends itself to working either as web app or console app.
+
+Plans:
+Develop first as console app.
+Then switch to haste.  
+Use free svg cards.
+
+Thoughts:
+Try to have web version ready to show at next haskell group meeting
+
+Because there are lots of aspects of haskell that I'm not familiar with, I
+don't expect this program to be written in the best way possible but I hope to
+learn about new language features both as I go along and from others with whom
+I discuss this project.
+
+By the same token, because I'm an inexperienced programmer, even the language
+features that I do use may not be effectively used.
+
+Complications:
+
+Does not seem to be standard style of indentation to go by.  
+
+Errors are scattered though the code. This results in more mixing of program
+logic and input/output than I would like.
+
+At some point I want to add a web interface.  I'm not sure how to plan for
+this ( although I expect it to sort itself out once I get going ).
+
+Realized along the way that a lot of checking for null that I was doing could
+be done by pattern matching.
+
+

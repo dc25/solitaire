@@ -70,7 +70,7 @@ playDeckToFoundation game@(Game fg _ dg _) index1
                 | otherwise = printAndReturn $ fromDeckToFoundation game index1 
 
 playFromTable :: Game -> Char -> Char -> IO Game
-playFromTable game@(Game _ _ _ _) cmd0 cmd1 
+playFromTable game cmd0 cmd1 
           | cmd1 >= '1' && cmd1 <= '7' = 
               playColumnToColumn game (ord cmd0 - ord '1') (ord cmd1 - ord '1') 
           | cmd1 >= 'A' && cmd1 <= 'D' = 
@@ -80,7 +80,7 @@ playFromTable game@(Game _ _ _ _) cmd0 cmd1
               return game
   
 playFromDeck :: Game -> Char -> IO Game
-playFromDeck game@(Game _ _ _ _) cmd1 
+playFromDeck game cmd1 
           | cmd1 >= '1' && cmd1 <= '7' =
               playDeckToColumn game (ord cmd1 - ord '1') 
           | cmd1 >= 'A' && cmd1 <= 'D' = 

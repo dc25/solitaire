@@ -27,20 +27,20 @@ suitLetter Clubs =    'C'
 
 data Color = Red | Black deriving  (Eq, Ord, Enum, Bounded, Show, Read)
 
+suitColor:: Suit -> Color
 suitColor Hearts =   Red
 suitColor Diamonds = Red
 suitColor Spades =   Black
 suitColor Clubs =    Black
-
 
 data Card = Card {
          rank :: Rank,
          suit :: Suit 
          } 
 
-cardColor (Card _ suit) = suitColor suit
-
+cardColor:: Card -> Color
+cardColor (Card _ suit') = suitColor suit'
 
 instance Show Card where
-    show (Card rank suit) = [rankLetter rank, suitLetter suit]
+    show (Card rank' suit') = [rankLetter rank', suitLetter suit']
 

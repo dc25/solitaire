@@ -1,2 +1,6 @@
 *~
+*.o
+*.hi
+*.js
 dist/
+main/

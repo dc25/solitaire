@@ -1,58 +1,21 @@
 import Data.Char
 import Control.Monad
 import Shuffle
-
-data Rank = Ace | Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King deriving  (Eq, Ord, Enum, Bounded, Show, Read)
-
-rankLetter :: Rank -> Char
-rankLetter Ace =   'A'
-rankLetter Ten =   'T'
-rankLetter Jack =  'J'
-rankLetter Queen = 'Q'
-rankLetter King =  'K'
-rankLetter r = chr ((fromEnum r - fromEnum Two) + ord '2')
-
-data Suit = Hearts | Diamonds | Spades | Clubs deriving  (Eq, Ord, Enum, Bounded, Show, Read)
-
-suitLetter :: Suit -> Char
-suitLetter Hearts =   'H'
-suitLetter Diamonds = 'D'
-suitLetter Spades =   'S'
-suitLetter Clubs =    'C'
-
-data Color = Red | Black deriving  (Eq, Ord, Enum, Bounded, Show, Read)
-
-suitColor Hearts =   Red
-suitColor Diamonds = Red
-suitColor Spades =   Black
-suitColor Clubs =    Black
-
-
-data Card = Card {
-         rank :: Rank,
-         suit :: Suit 
-         } 
-
-cardColor (Card _ suit) = suitColor suit
-
-
-instance Show Card where
-    show (Card rank suit) = [rankLetter rank, suitLetter suit]
+import Card
 
 data Column = Column {
               concealed :: [Card],
               visible ::   [Card]
               }
 
-data Game = Game {
-         foundations :: [[Card]],
-         columns ::     [Column],
-         deck ::        [Card],
-         reserves ::    [Card]
-         } 
+data Game = Game 
+         [[Card]]  -- foundations
+         [Column]  -- columns
+         [Card]    -- deck
+         [Card]    -- reserves
 
 instance Show Game where
-    show game@(Game fg cg dg rg) = 
+    show (Game fg cg dg rg) = 
           let emptySpace = "__"
               hiddenCard = "??"
               noCard =     "  "
@@ -61,7 +24,7 @@ instance Show Game where
               clines = unwords $ map (\f -> if null $ concealed f then emptySpace else hiddenCard) cg
 
               vlines = toVisibleLines $ map (reverse.visible) cg where
-                   toVisibleLines vg@[[],[],[],[],[],[],[]] = []
+                   toVisibleLines [[],[],[],[],[],[],[]] = []
                    toVisibleLines vg =
                          unwords (map (\f -> if null f then noCard else show $ head f) vg) 
                        : toVisibleLines (map (\f -> if null f then [] else tail f) vg)
@@ -69,11 +32,11 @@ instance Show Game where
               dlines = unwords [ if null rg then emptySpace else hiddenCard, 
                                if null dg then emptySpace else show $ head dg ]
 
-              lines = flines:clines:vlines ++ [dlines]
-          in unlines lines
+              lines' = flines:clines:vlines ++ [dlines]
+          in unlines lines'
 
 gameOver :: Game -> Bool
-gameOver game@(Game fg cg dg rg) =    
+gameOver (Game _ cg dg rg) =    
                    all null (map visible cg)
                 && all null (map concealed cg)
                 && null dg
@@ -87,25 +50,27 @@ gameOver game@(Game fg cg dg rg) =
 ---------------------------------------------------------
 
 -- Utility functions
-goesOnColumn card column@(Column [] []) = rank card == King
-goesOnColumn card column@(Column _ (vh:vt)) = 
+goesOnColumn :: Card -> Column -> Bool
+goesOnColumn card (Column [] []) = rank card == King
+goesOnColumn card (Column _ (vh:_)) = 
     (cardColor card /= cardColor vh) && fromEnum (rank card) + 1 == fromEnum (rank vh)
 
+goesOnFoundation :: Card -> [Card] -> Bool
 goesOnFoundation card [] = rank card == Ace 
-goesOnFoundation card (fh:ft) =
+goesOnFoundation card (fh:_) =
     (suit card == suit fh) && fromEnum (rank card) == fromEnum (rank fh) + 1
 
 -- if the visible portion of a column is empty
 -- then "replenish" it with one card from the concealed
 -- portion of the column
 replenishColumn :: Column -> Column
-replenishColumn column@(Column (ch:ct)  []) = Column ct [ch]
+replenishColumn (Column (ch:ct)  []) = Column ct [ch]
 replenishColumn column = column
 
 -- check for empty column has already been done; assert ??
 removeOneFromColumn :: [Column] -> Int -> ([Column], Card)
 removeOneFromColumn cg index0 =
-    let column0@(Column concealed0 visible0) = cg !! index0
+    let (Column concealed0 visible0) = cg !! index0
         newColumn0 = Column concealed0 (tail visible0)
         newColumn1 = replenishColumn newColumn0
         newColumns0 = take index0 cg ++ newColumn1 : drop (index0+1) cg
@@ -114,7 +79,7 @@ removeOneFromColumn cg index0 =
 -- check for empty column has already been done; assert ??
 removeAllFromColumn :: [Column] -> Int -> ([Column], [Card])
 removeAllFromColumn cg index0 =
-    let column0@(Column concealed0 visible0) = cg !! index0
+    let (Column concealed0 visible0) = cg !! index0
         newColumn0 = Column concealed0 []
         newColumn1 = replenishColumn newColumn0
         newColumns0 = take index0 cg ++ newColumn1 : drop (index0+1) cg
@@ -128,13 +93,13 @@ addToFoundations fg index1 card =
 
 addToColumns :: [Column] -> Int -> [Card] -> [Column]
 addToColumns cg index1 cards =
-    let column1@(Column concealed1 visible1) = cg !! index1
+    let (Column concealed1 visible1) = cg !! index1
         newColumn = Column concealed1 (cards ++ visible1)
     in take index1 cg ++ newColumn : drop (index1+1) cg
 
 addOneToColumns :: [Column] -> Int -> Card -> [Column]
 addOneToColumns cg index1 card =
-    let column1@(Column concealed1 visible1) = cg !! index1
+    let (Column concealed1 visible1) = cg !! index1
         newColumn = Column concealed1 (card : visible1)
     in take index1 cg ++ newColumn : drop (index1+1) cg
 
@@ -143,71 +108,74 @@ addOneToColumns cg index1 card =
 ---------------------------------------------------------
 
 -- deal a deck of cards out to the klondike layout
-start game@(Game fg cg dg rg) = 
+start :: Game -> Game
+start (Game fg cg dg rg) = 
             let (columns', reserves') = deal cg rg
             in Game fg columns' dg reserves'
             where 
                 -- stop dealing out cards when all stacks full
-                deal columns@[] reserves = (columns, reserves)
+                deal columns'@[] reserves' = (columns', reserves')
 
-                deal columns reserves = 
+                deal columns' reserves' = 
                     let 
                         -- one card up on first stack
-                        visibleHead = head reserves : visible (head columns)
+                        visibleHead = head reserves' : visible (head columns')
 
                         -- no concealed cards on first stack (unchanged)
-                        concealedHead = concealed $ head columns
+                        concealedHead = concealed $ head columns'
 
                         -- no cards up after first stack (unchanged)
-                        visibleTail = map visible $ tail columns
+                        visibleTail = map visible $ tail columns'
 
                         -- add concealed card to every stack past first
-                        concealedTail = zipWith (:) (tail reserves) $ map concealed (tail columns) 
+                        concealedTail = zipWith (:) (tail reserves') $ map concealed (tail columns') 
 
                         -- combine concealed and visible to get column
                         columnsHead = Column concealedHead visibleHead
 
-                        -- zip concealed & visible to get columns
+                        -- zip concealed & visible to get columns'
                         columnsTail = zipWith Column concealedTail visibleTail
 
-                        -- remove used cards from reserves
-                        remainingDeck = drop (length columns) reserves
+                        -- remove used cards from reserves'
+                        remainingDeck = drop (length columns') reserves'
 
-                        -- recurse to deal onto remaining columns
-                        (columns', reserves') = deal columnsTail remainingDeck
+                        -- recurse to deal onto remaining columns'
+                        (columns'', reserves'') = deal columnsTail remainingDeck
 
-                    in (columnsHead : columns', reserves')
+                    in (columnsHead : columns'', reserves'')
 
 fromColumnToFoundation :: Game -> Int -> Int -> Game
-fromColumnToFoundation game@(Game fg cg dg rg) index0 index1 =
+fromColumnToFoundation (Game fg cg dg rg) index0 index1 =
     let (newColumns0,removedCard) = removeOneFromColumn cg index0
         newFoundations = addToFoundations fg index1 removedCard
     in Game newFoundations  newColumns0 dg rg 
 
 fromColumnToColumn :: Game -> Int -> Int -> Game
-fromColumnToColumn game@(Game fg cg dg rg) index0 index1 =
+fromColumnToColumn (Game fg cg dg rg) index0 index1 =
     let (newColumns0,removedCards) = removeAllFromColumn cg index0
         newColumns1 = addToColumns newColumns0 index1 removedCards
     in Game fg  newColumns1 dg rg 
 
 fromDeckToColumn :: Game -> Int -> Game
-fromDeckToColumn game@(Game fg cg dg rg) index1 =
+fromDeckToColumn (Game fg cg dg rg) index1 =
     let newDeck = tail dg
         removedCard = head dg
         newColumns = addOneToColumns cg index1 removedCard
     in  Game fg newColumns newDeck rg
 
 fromDeckToFoundation :: Game -> Int -> Game
-fromDeckToFoundation game@(Game fg cg dg rg) index1 =
+fromDeckToFoundation (Game fg cg dg rg) index1 =
     let newDeck = tail dg
         removedCard = head dg
         newFoundations = addToFoundations fg index1 removedCard
     in Game newFoundations  cg newDeck rg
 
-fromReservesToDeck game@(Game fg cg dg rg) = 
+fromReservesToDeck:: Game -> Game
+fromReservesToDeck (Game fg cg dg rg) = 
     Game fg cg (reverse (take 3 rg) ++ dg) (drop 3 rg)
 
-fromDeckToReserves game@(Game fg cg dg rg) = 
+fromDeckToReserves :: Game -> Game
+fromDeckToReserves (Game fg cg dg _) = 
     Game fg cg [] (reverse dg)
 
 -------------------------------------------------------------
@@ -224,7 +192,7 @@ printAndReturn game = do
 
 
 playColumnToFoundation :: Game -> Int -> Int -> IO Game
-playColumnToFoundation game@(Game fg cg dg rg) index0 index1 
+playColumnToFoundation game@(Game fg cg _ _) index0 index1 
                 | null.visible $ cg !! index0 = do
                     putStrLn $ "Can not move cards from empty column: " ++ show (index0+1)
                     return game
@@ -236,7 +204,7 @@ playColumnToFoundation game@(Game fg cg dg rg) index0 index1
                 | otherwise = printAndReturn $ fromColumnToFoundation game index0 index1
 
 playColumnToColumn :: Game -> Int -> Int -> IO Game
-playColumnToColumn game@(Game fg cg dg rg) index0 index1 
+playColumnToColumn game@(Game _ cg _ _) index0 index1 
                 | index0 == index1 = do
                     putStrLn "Can not move cards from a column to itself."
                     return game
@@ -252,7 +220,7 @@ playColumnToColumn game@(Game fg cg dg rg) index0 index1
                 | otherwise = printAndReturn $ fromColumnToColumn game index0 index1
 
 playDeckToColumn :: Game -> Int -> IO Game
-playDeckToColumn game@(Game fg cg dg rg) index1 
+playDeckToColumn game@(Game _ cg dg _) index1 
                 | null dg = do
                     putStrLn "Can not play from empty deck." 
                     return game
@@ -264,7 +232,7 @@ playDeckToColumn game@(Game fg cg dg rg) index1
                 | otherwise = printAndReturn $ fromDeckToColumn game index1 
 
 playDeckToFoundation :: Game -> Int -> IO Game
-playDeckToFoundation game@(Game fg cg dg rg) index1 
+playDeckToFoundation game@(Game fg _ dg _) index1 
                 | null dg = do
                     putStrLn "Can not play from empty deck." 
                     return game
@@ -276,7 +244,7 @@ playDeckToFoundation game@(Game fg cg dg rg) index1
                 | otherwise = printAndReturn $ fromDeckToFoundation game index1 
 
 playFromTable :: Game -> Char -> Char -> IO Game
-playFromTable game@(Game fg cg dg rg) cmd0 cmd1 
+playFromTable game@(Game _ _ _ _) cmd0 cmd1 
           | cmd1 >= '1' && cmd1 <= '7' = 
               playColumnToColumn game (ord cmd0 - ord '1') (ord cmd1 - ord '1') 
           | cmd1 >= 'A' && cmd1 <= 'D' = 
@@ -286,7 +254,7 @@ playFromTable game@(Game fg cg dg rg) cmd0 cmd1
               return game
   
 playFromDeck :: Game -> Char -> IO Game
-playFromDeck game@(Game fg cg dg rg) cmd1 
+playFromDeck game@(Game _ _ _ _) cmd1 
           | cmd1 >= '1' && cmd1 <= '7' =
               playDeckToColumn game (ord cmd1 - ord '1') 
           | cmd1 >= 'A' && cmd1 <= 'D' = 
@@ -296,7 +264,7 @@ playFromDeck game@(Game fg cg dg rg) cmd1
               return game
 
 updateGame :: Game -> String -> IO Game
-updateGame game@(Game fg cg dg rg)  command
+updateGame game@(Game _ _ _ rg)  command
         | cmd0 == 'D' = if null rg then do 
                             putStrLn "No cards are available to Draw from.  Use 'R' to replenish."
                             return game

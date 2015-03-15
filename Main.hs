@@ -1,16 +1,6 @@
-import System.Random
 import Data.Char
 import Control.Monad
-
-shuffle :: [a] -> IO [a]
-shuffle ys = do
-    gen <- newStdGen
-    return $ shuffle' gen ys where
-        shuffle' _ [] = []
-        shuffle' gen ys = 
-            let (r, newGen) = randomR (0, length ys - 1) gen
-                (a,b) = splitAt r ys
-            in head b : shuffle' newGen (a ++ tail b)
+import Shuffle
 
 data Rank = Ace | Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King deriving  (Eq, Ord, Enum, Bounded, Show, Read)
 
@@ -336,14 +326,15 @@ updateLoop game =
         updatedGame <- updateGame game command
         updateLoop updatedGame
 
+main :: IO ()
 main = do 
           shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
 
           let
-              foundations = replicate 4 []
-              columns =     replicate 7 $ Column [] []
-              deck =       []
-              game = Game foundations columns deck shuffledDeck
+              foundations' = replicate 4 []
+              columns' =     replicate 7 $ Column [] []
+              deck' =       []
+              game = Game foundations' columns' deck' shuffledDeck
               gameInPlay = start game
 
           print gameInPlay

@@ -14,6 +14,14 @@ foreign import ccall loadCards :: Ptr (IO ()) -> IO ()
 foreign import ccall placeCard :: JSString -> Int -> Int -> IO ()
 
 loadCallback = do
+    shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
+    let
+        foundations' = replicate 4 []
+        columns' =     replicate 7 $ Column [] []
+        deck' =       []
+        game = Game foundations' columns' deck' shuffledDeck
+        gameInPlay = start game
+
     placeCard (toJSStr "1_club") 0 0 
     placeCard (toJSStr "king_diamond") 400 50
     placeCard (toJSStr "3_heart") 300 100
@@ -21,13 +29,4 @@ loadCallback = do
     placeCard (toJSStr "jack_spade") 340 250
 
 main = do 
-          shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
-
-          let
-              foundations' = replicate 4 []
-              columns' =     replicate 7 $ Column [] []
-              deck' =       []
-              game = Game foundations' columns' deck' shuffledDeck
-              gameInPlay = start game
-
           loadCards(toPtr loadCallback)

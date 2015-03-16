@@ -6,7 +6,7 @@ var w:number = 1400;
 var h:number = 800;
 
 // Global scale to apply to all cards displayed
-var cardScale:number = 0.7
+var cardScale:number = 0.5
 
 //Create SVG Element
 var svg = d3.select("body")

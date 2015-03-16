@@ -30,8 +30,8 @@ svgString (Card rank suit) = rankSVGString rank ++ "_" ++ suitSVGString suit
 
 showDeck :: [Card] -> IO ()
 showDeck deck = 
-           sequence_ (map pc $ zip [ (x,y) | x <- [0..70], y <- [0..5] ] deck)
-               where pc ((x,y), card) = placeCard (toJSStr $ svgString card) (100*x) (120*y)
+           sequence_ (map pc $ zip [ (x,y) | x <- [0..70], y <- [0..4] ] deck)
+               where pc ((x,y), card) = placeCard (toJSStr $ svgString card) (100*x) (30*y)
 
 showGame :: Game -> IO ()
 showGame game = return ()
@@ -45,7 +45,7 @@ loadCallback = do
         game = Game foundations' columns' deck' shuffledDeck
         gameInPlay = start game
     showDeck $ shuffledDeck
-    return () -- why is this necessary?
+    return () -- Why is this necessary?  Should this be necessary?
 
 main = do 
           loadCards(toPtr loadCallback)

@@ -30,11 +30,22 @@ svgString (Card rank suit) = rankSVGString rank ++ "_" ++ suitSVGString suit
 
 showDeck :: [Card] -> IO ()
 showDeck deck = 
-           sequence_ (map pc $ zip [ (x,y) | x <- [0..70], y <- [0..4] ] deck)
-               where pc ((x,y), card) = placeCard (toJSStr $ svgString card) (100*x) (30*y)
+        sequence_ (map pc $ zip [ (x,y) | x <- [0..70], y <- [0..4] ] deck)
+            where pc ((x,y), card) = placeCard (toJSStr $ svgString card) (100*x) (30*y)
+
+showColumn :: (Int, Column) -> IO ()
+showColumn (hindex, (Column hidden visible)) = 
+        let showHidden = (map ph $ zip [0..] hidden)
+                where ph (vindex,_) = placeCard (toJSStr $ "back") (100*hindex) (30*vindex)
+            showVisible = (map pc $ zip [length hidden..] visible)
+                where pc (vindex,card) = placeCard (toJSStr $ svgString card) (100*hindex) (30*vindex)
+        in sequence_ $ showHidden++showVisible
 
 showGame :: Game -> IO ()
-showGame game = return ()
+showGame game@(Game foundations columns deck reserves)  = 
+        let numberedColumns = zip [0..] columns
+        in sequence_ $ map showColumn numberedColumns
+         
 
 loadCallback = do
     shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
@@ -44,8 +55,9 @@ loadCallback = do
         deck' =       []
         game = Game foundations' columns' deck' shuffledDeck
         gameInPlay = start game
-    showDeck $ shuffledDeck
-    return () -- Why is this necessary?  Should this be necessary?
+    -- showDeck $ shuffledDeck
+    showGame $ gameInPlay
+    return () -- Without this nothing displays. Why is this necessary?  
 
 main = do 
           loadCards(toPtr loadCallback)

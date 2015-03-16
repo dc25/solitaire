@@ -40,4 +40,6 @@ haste may break it.  System.Random does not appear to work in haste but haste
 has a built in random.  How to get both to work depending on runtime
 environment?
 
+Need to use callback to initialize - could this have been avoided?
+
 

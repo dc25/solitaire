@@ -41,7 +41,9 @@ function placeCard(name:string, x:number, y:number) {
     });
 }
 
-function loadCards_local(cb) {
+var A:any;
+
+function loadCards(cb) {
     //Import the full deck of cards.
     d3.xml("pretty-svg-cards.svg", "image/svg+xml", function(xml) {  
 
@@ -52,15 +54,7 @@ function loadCards_local(cb) {
                this.appendChild(xml.documentElement.cloneNode(true)); 
           });
 
-        cb();
+        A(cb, [0]);
     });
-}
-
-var A:any;
-
-function loadCards(cb_ffi) {
-    loadCards_local( function () { 
-        A(cb_ffi, [0]);
-    })
 }
 

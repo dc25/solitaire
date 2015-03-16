@@ -1,0 +1,37 @@
+/****************************************************************************** Thanks to :
+    http://stackoverflow.com/questions/16813829/responsive-inline-svg-content-of-svg-must-fill-parent-width
+    for the original version of most of this css
+******************************************************************************/
+
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+/* unused */
+html {background-color: pink;}    
+
+/* unused */
+.block {
+    background-color:blue;
+    height: 50px;
+}
+
+/* unused */
+.svg-wrap {
+    background-color:red;
+    height:0;
+    padding-top:63.63%;
+    position: relative;
+}
+
+svg {
+    background-color: bisque;
+    height: 100%;
+    display:block;
+    width: 100%;
+    position: absolute;
+    top:0;
+    left:0;
+}

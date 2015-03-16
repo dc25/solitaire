@@ -15,7 +15,7 @@ var svg = d3.select("body")
     .attr("height", h);
 
 
-function placeCard(name, x:number, y:number) {
+function placeCard(name:string, x:number, y:number) {
     var card = document.getElementById(name);
 
     // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
@@ -41,23 +41,17 @@ function placeCard(name, x:number, y:number) {
     });
 }
 
-//Import the full deck of cards.
-d3.xml("pretty-svg-cards.svg", "image/svg+xml", function(xml) {  
+function loadCards_local(cb) {
+    //Import the full deck of cards.
+    d3.xml("pretty-svg-cards.svg", "image/svg+xml", function(xml) {  
 
-    d3.select("body")
-      .append("div")
-      .attr("style", "display: none; visibility: hidden")
-      .each(function(d, i){ 
-           var plane = this.appendChild(xml.documentElement.cloneNode(true)); 
-      });
+        d3.select("body")
+          .append("div")
+          .attr("style", "display: none; visibility: hidden")
+          .each(function(d, i){ 
+               this.appendChild(xml.documentElement.cloneNode(true)); 
+          });
 
-    placeCard("red_joker", 0, 0);
-    placeCard("2_club", 150, 0);
-    placeCard("king_heart", 300, 300);
-    placeCard("black_joker", 450, 200);
-    placeCard("queen_spade", 600, 0);
-    placeCard("king_heart", 100, 300);
-});
-
-
-
+        cb();
+    });
+}

@@ -28,17 +28,22 @@ suitSVGString Clubs =    "club"
 
 svgString (Card rank suit) = rankSVGString rank ++ "_" ++ suitSVGString suit
 
+xSep = 100
+ySep = 30
+xColumnPlacement = 200
+yColumnPlacement = 100
+
 showDeck :: [Card] -> IO ()
 showDeck deck = 
         sequence_ (map pc $ zip [ (x,y) | x <- [0..70], y <- [0..4] ] deck)
-            where pc ((x,y), card) = placeCard (toJSStr $ svgString card) (100*x) (30*y)
+            where pc ((x,y), card) = placeCard (toJSStr $ svgString card) (xSep*x) (ySep*y)
 
 showColumn :: (Int, Column) -> IO ()
 showColumn (hindex, (Column hidden visible)) = 
         let showHidden = (map ph $ zip [0..] hidden)
-                where ph (vindex,_) = placeCard (toJSStr $ "back") (100*hindex) (30*vindex)
+                where ph (vindex,_) = placeCard (toJSStr $ "back") (xColumnPlacement+ xSep*hindex) (yColumnPlacement+ ySep*vindex)
             showVisible = (map pc $ zip [length hidden..] visible)
-                where pc (vindex,card) = placeCard (toJSStr $ svgString card) (100*hindex) (30*vindex)
+                where pc (vindex,card) = placeCard (toJSStr $ svgString card) (xColumnPlacement+ xSep*hindex) (yColumnPlacement+ ySep*vindex)
         in sequence_ $ showHidden++showVisible
 
 showGame :: Game -> IO ()

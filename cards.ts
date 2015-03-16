@@ -3,6 +3,18 @@
 
 // Global scale to apply to all cards displayed
 var cardScale:number = 0.5
+var drag = d3.behavior.drag()
+    .on("dragstart", function () { d3.event.sourceEvent.stopPropagation(); })
+    .on("drag", dragmove);
+
+// Define drag beavior
+function dragmove(d) {
+    d.xtranslate += d3.event.dx/cardScale;
+    d.ytranslate += d3.event.dy/cardScale;
+    d3.select(this).attr("transform", 
+                  "scale (" + cardScale + ")"
+                + "translate (" +  d.xtranslate + "," +  d.ytranslate + ")" );
+}
 
 function placeCard(name:string, x:number, y:number) {
     var card = document.getElementById(name);
@@ -17,12 +29,14 @@ function placeCard(name:string, x:number, y:number) {
 
     d3.select("body svg")
         .append("g")
+        .call(drag)
+        .data([{xtranslate:(0      + x/cardScale - xOffset),
+                ytranslate:(235.27 + y/cardScale - yOffset)
+               }])
         .attr("transform", function(d, i){ 
         return ""
                 + "scale (" + cardScale + ")"
-                + "translate (" + 
-                  (0      + x/cardScale - xOffset) + "," 
-                + (235.27 + y/cardScale - yOffset) + ")" 
+                + "translate (" + d.xtranslate + "," +  d.ytranslate + ")" 
         ;
     })
     .each(function(d, i) { 

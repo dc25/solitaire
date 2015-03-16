@@ -33,11 +33,6 @@ ySep = 30
 xColumnPlacement = 200
 yColumnPlacement = 100
 
-showDeck :: [Card] -> IO ()
-showDeck deck = 
-        sequence_ (map pc $ zip [ (x,y) | x <- [0..70], y <- [0..4] ] deck)
-            where pc ((x,y), card) = placeCard (toJSStr $ svgString card) (xSep*x) (ySep*y)
-
 showColumn :: (Int, Column) -> IO ()
 showColumn (hindex, (Column hidden visible)) = 
         let showHidden = (map ph $ zip [0..] hidden)
@@ -60,7 +55,6 @@ loadCallback = do
         deck' =       []
         game = Game foundations' columns' deck' shuffledDeck
         gameInPlay = start game
-    -- showDeck $ shuffledDeck
     showGame $ gameInPlay
     return () -- Without this nothing displays. Why is this necessary?  
 

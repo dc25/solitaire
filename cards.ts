@@ -2,11 +2,11 @@
 "use strict";
 
 //Width and height
-var w:number = 800;
+var w:number = 1400;
 var h:number = 800;
 
 // Global scale to apply to all cards displayed
-var cardScale:number = 1.4;
+var cardScale:number = 0.7
 
 //Create SVG Element
 var svg = d3.select("body")

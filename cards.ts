@@ -55,3 +55,12 @@ function loadCards_local(cb) {
         cb();
     });
 }
+
+var A:any;
+
+function loadCards(cb_ffi) {
+    loadCards_local( function () { 
+        A(cb_ffi, [0]);
+    })
+}
+

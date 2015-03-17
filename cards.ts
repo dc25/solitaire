@@ -1,11 +1,23 @@
 ///<reference path="d3.d.ts" />
 "use strict";
 
+// A & B are required by haste for callbacks.  See: 
+// https://github.com/valderman/haste-compiler/blob/master/doc/js-externals.txt
+// for details.
+var A:any;
+var B:any;
+
+// For debugging.
+function showAlert(msg:string) {
+        alert(msg);
+}
+
 // Global scale to apply to all cards displayed
 var cardScale:number = 0.5
 var drag = d3.behavior.drag()
     .on("dragstart", function () { d3.event.sourceEvent.stopPropagation(); })
-    .on("drag", dragmove);
+    .on("drag", dragmove)
+    .on("dragend", dragend);
 
 // Define drag beavior
 function dragmove(d) {
@@ -14,6 +26,23 @@ function dragmove(d) {
     d3.select(this).attr("transform", 
                   "scale (" + cardScale + ")"
                 + "translate (" +  d.xtranslate + "," +  d.ytranslate + ")" );
+}
+
+// Provide for callback into haskell when object stops being dragged.
+var dragEndCallback;
+
+// Called from haskell
+function setDragEndCallback(cb) {
+    dragEndCallback = cb;
+}
+
+// Define dragend behavior - just call back into haskell.
+function dragend(d) {
+
+    // additional select("g") because card is nested below dragged object
+    var draggedId:string = d3.select(this).select("g").attr("id");
+    
+    B(A(dragEndCallback, [[0,draggedId], [0,100], [0,400], 0]));
 }
 
 function placeCard(name:string, x:number, y:number) {
@@ -44,8 +73,6 @@ function placeCard(name:string, x:number, y:number) {
     });
 }
 
-var A:any;
-
 function loadCards(cb) {
     //Import the full deck of cards.
     d3.xml("pretty-svg-cards.svg", "image/svg+xml", function(xml) {  
@@ -57,7 +84,7 @@ function loadCards(cb) {
                this.appendChild(xml.documentElement.cloneNode(true)); 
           });
 
-        A(cb, [0]);
+        // Call back to haskell when done.
+        B(A(cb, [0])); 
     });
 }
-

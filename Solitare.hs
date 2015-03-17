@@ -12,6 +12,8 @@ import Game
 
 foreign import ccall loadCards :: Ptr (IO ()) -> IO ()
 foreign import ccall placeCard :: JSString -> Int -> Int -> IO ()
+foreign import ccall showAlert :: JSString -> IO ()
+foreign import ccall setDragEndCallback :: Ptr (JSString -> Int -> Int -> IO ()) -> IO ()
 
 rankSVGString :: Rank -> String
 rankSVGString Ten =   "10"
@@ -46,6 +48,12 @@ showGame game@(Game foundations columns deck reserves)  =
         let numberedColumns = zip [0..] columns
         in sequence_ $ map showColumn numberedColumns
          
+setCallbacks :: Game -> IO ()
+setCallbacks game = do
+        setDragEndCallback $ (toPtr $ onDragEnd game)
+
+onDragEnd :: Game -> JSString -> Int -> Int -> IO ()
+onDragEnd game string x y = showAlert $ string
 
 loadCallback = do
     shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
@@ -56,6 +64,7 @@ loadCallback = do
         game = Game foundations' columns' deck' shuffledDeck
         gameInPlay = start game
     showGame $ gameInPlay
+    setCallbacks gameInPlay
     return () -- Without this nothing displays. Why is this necessary?  
 
 main = do 

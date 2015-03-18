@@ -53,7 +53,9 @@ setCallbacks game = do
         setDragEndCallback $ (toPtr $ onDragEnd game)
 
 onDragEnd :: Game -> JSString -> Int -> Int -> IO ()
-onDragEnd game string x y = showAlert $ string
+onDragEnd game string x y = 
+        let string' = fromJSStr string ++ " " ++ show x ++ " " ++ show y
+        in showAlert $ toJSStr string'
 
 loadCallback = do
     shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
@@ -65,7 +67,6 @@ loadCallback = do
         gameInPlay = start game
     showGame $ gameInPlay
     setCallbacks gameInPlay
-    return () -- Without this nothing displays. Why is this necessary?  
 
 main = do 
           loadCards(toPtr loadCallback)

@@ -12,6 +12,7 @@ import Game
 
 foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
 foreign import ccall placeCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
+foreign import ccall alignCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall showAlert_ffi :: JSString -> IO ()
 foreign import ccall setDragEndCallback_ffi :: Ptr (JSString -> Int -> Int -> IO ()) -> IO ()
 
@@ -57,6 +58,27 @@ showGame :: Game -> IO ()
 showGame game@(Game foundations columns deck reserves)  = 
         let numberedColumns = zip [0..] columns
         in sequence_ $ map showColumn numberedColumns
+         
+-- place card with id, css class, column, depth in column
+alignTableCard :: String -> String -> Int -> Int -> IO ()
+alignTableCard id cssClass columnIndex positionInColumn =
+        alignCard_ffi (toJSStr id) 
+                  (toJSStr cssClass)
+                  (xColumnPlacement+ xSep*columnIndex) 
+                  (yColumnPlacement+ ySep*positionInColumn)
+
+-- assign vindex indicating depth in column to each card in column
+-- display card in column position specified by (hindex,vindex)
+alignColumn :: (Int, Column) -> IO ()
+alignColumn (hindex, (Column hidden visible)) = 
+    let alignVisible = (map pc $ zip [length hidden..] visible)
+            where pc (vindex,card) = alignTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
+    in sequence_ $ alignVisible
+
+alignGame :: Game -> IO ()
+alignGame game@(Game foundations columns deck reserves)  = 
+        let numberedColumns = zip [0..] columns
+        in sequence_ $ map alignColumn numberedColumns
          
 setCallbacks :: Game -> IO ()
 setCallbacks game = do

@@ -10,10 +10,10 @@ import Shuffle
 import Card
 import Game
 
-foreign import ccall loadCards :: Ptr (IO ()) -> IO ()
-foreign import ccall placeCard :: JSString -> Int -> Int -> IO ()
-foreign import ccall showAlert :: JSString -> IO ()
-foreign import ccall setDragEndCallback :: Ptr (JSString -> Int -> Int -> IO ()) -> IO ()
+foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
+foreign import ccall placeCard_ffi :: JSString -> Int -> Int -> IO ()
+foreign import ccall showAlert_ffi :: JSString -> IO ()
+foreign import ccall setDragEndCallback_ffi :: Ptr (JSString -> Int -> Int -> IO ()) -> IO ()
 
 rankSVGString :: Rank -> String
 rankSVGString Ten =   "10"
@@ -38,9 +38,9 @@ yColumnPlacement = 100
 showColumn :: (Int, Column) -> IO ()
 showColumn (hindex, (Column hidden visible)) = 
         let showHidden = (map ph $ zip [0..] hidden)
-                where ph (vindex,_) = placeCard (toJSStr $ "back") (xColumnPlacement+ xSep*hindex) (yColumnPlacement+ ySep*vindex)
+                where ph (vindex,_) = placeCard_ffi (toJSStr $ "back") (xColumnPlacement+ xSep*hindex) (yColumnPlacement+ ySep*vindex)
             showVisible = (map pc $ zip [length hidden..] visible)
-                where pc (vindex,card) = placeCard (toJSStr $ svgString card) (xColumnPlacement+ xSep*hindex) (yColumnPlacement+ ySep*vindex)
+                where pc (vindex,card) = placeCard_ffi (toJSStr $ svgString card) (xColumnPlacement+ xSep*hindex) (yColumnPlacement+ ySep*vindex)
         in sequence_ $ showHidden++showVisible
 
 showGame :: Game -> IO ()
@@ -50,12 +50,12 @@ showGame game@(Game foundations columns deck reserves)  =
          
 setCallbacks :: Game -> IO ()
 setCallbacks game = do
-        setDragEndCallback $ (toPtr $ onDragEnd game)
+        setDragEndCallback_ffi $ (toPtr $ onDragEnd game)
 
 onDragEnd :: Game -> JSString -> Int -> Int -> IO ()
 onDragEnd game string x y = 
         let string' = fromJSStr string ++ " " ++ show x ++ " " ++ show y
-        in showAlert $ toJSStr string'
+        in showAlert_ffi $ toJSStr string'
 
 loadCallback = do
     shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
@@ -69,4 +69,4 @@ loadCallback = do
     setCallbacks gameInPlay
 
 main = do 
-          loadCards(toPtr loadCallback)
+          loadCards_ffi(toPtr loadCallback)

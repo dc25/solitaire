@@ -49,9 +49,8 @@ function dragend(d) {
     B(A(dragEndCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
 }
 
-function alignCard_ffi(name:string, classname:string, x:number, y:number) {
-    var card = document.getElementById(name);
-
+function getBaseOffset(card:HTMLElement) 
+{
     // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
 
     var queryString = 'use[*|href="#base"]';
@@ -59,14 +58,22 @@ function alignCard_ffi(name:string, classname:string, x:number, y:number) {
 
     var xOffset = parseInt(base.attr("x"));
     var yOffset = parseInt(base.attr("y"));
+    return {x:xOffset, y:yOffset};
+}
+
+
+function alignCard_ffi(name:string, classname:string, x:number, y:number) {
+    var card = document.getElementById(name);
+
+    var baseOffset = getBaseOffset(card);
 
     d3.select('body svg g[data-name="' +name +'"]')
         .attr("class", function(d, i){ 
                    return classname; 
                }
              )
-        .data([{xtranslate:(0      + x/cardScale - xOffset),
-                ytranslate:(235.27 + y/cardScale - yOffset)
+        .data([{xtranslate:(0      + x/cardScale - baseOffset.x),
+                ytranslate:(235.27 + y/cardScale - baseOffset.y)
                 }]
              )
         .transition()
@@ -80,14 +87,7 @@ function alignCard_ffi(name:string, classname:string, x:number, y:number) {
 
 function placeCard_ffi(name:string, classname:string, x:number, y:number) {
     var card = document.getElementById(name);
-
-    // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
-
-    var queryString = 'use[*|href="#base"]';
-    var base = d3.select(card).select(queryString);
-
-    var xOffset:number = parseInt(base.attr("x"));
-    var yOffset:number = parseInt(base.attr("y"));
+    var baseOffset = getBaseOffset(card);
 
     d3.select("body svg")
         .append("g")
@@ -103,8 +103,8 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
                    return classname; 
                }
              )
-        .data([{xtranslate:(0      + x/cardScale - xOffset),
-                ytranslate:(235.27 + y/cardScale - yOffset)
+        .data([{xtranslate:(0      + x/cardScale - baseOffset.x),
+                ytranslate:(235.27 + y/cardScale - baseOffset.y)
                 }]
              )
         .attr("transform", function(d, i){ 

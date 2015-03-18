@@ -65,14 +65,18 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
         .each(function(d, i) { 
                    this.appendChild(card.cloneNode(true)); 
                }
-               )
+             )
+        .attr("data-name", function(d, i){ 
+                   return name; 
+               }
+             )
+        .attr("class", function(d, i){ 
+                   return classname; 
+               }
+             )
         .data([{xtranslate:(0      + x/cardScale - xOffset),
                 ytranslate:(235.27 + y/cardScale - yOffset)
                 }]
-             )
-        .attr("class", function(d, i){ 
-                   return classname;
-               }
              )
         .attr("transform", function(d, i){ 
                    return "scale (" + cardScale + ")"

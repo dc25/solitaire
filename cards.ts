@@ -15,9 +15,13 @@ function showAlert_ffi(msg:string) {
 // Global scale to apply to all cards displayed
 var cardScale:number = 0.5
 var drag = d3.behavior.drag()
-    .on("dragstart", function () { d3.event.sourceEvent.stopPropagation(); })
+    .on("dragstart", dragstart)
     .on("drag", dragmove)
     .on("dragend", dragend);
+
+function dragstart() { 
+    d3.event.sourceEvent.stopPropagation(); 
+}
 
 // Define drag beavior
 function dragmove(d) {

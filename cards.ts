@@ -41,8 +41,12 @@ function dragend(d) {
 
     // additional select("g") because card is nested below dragged object
     var draggedId:string = d3.select(this).select("g").attr("id");
+
+    var coordinates = d3.mouse(this.parentNode);
+    var xCoord = coordinates[0];
+    var yCoord = coordinates[1];
     
-    B(A(dragEndCallback, [[0,draggedId], [0,100], [0,400], 0]));
+    B(A(dragEndCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
 }
 
 function placeCard(name:string, x:number, y:number) {

@@ -105,9 +105,8 @@ alignTableCard id cssClass columnIndex positionInColumn =
 -- display card in column position specified by (hindex,vindex)
 alignColumn :: Int -> Column -> IO ()
 alignColumn hindex (Column hidden visible) = 
-    let alignVisible = (map pc $ zip [length hidden..] (reverse visible))
+    sequence_ (map pc $ zip [length hidden..] (reverse visible))
             where pc (vindex,card) = alignTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
-    in sequence_ $ alignVisible
 
 alignGame :: Game -> IO ()
 alignGame game@(Game foundations columns deck reserves)  = 

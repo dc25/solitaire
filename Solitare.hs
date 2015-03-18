@@ -90,8 +90,7 @@ showColumn hindex column = do
 
 showGame :: Game -> IO ()
 showGame game@(Game foundations columns deck reserves)  = 
-        let numberedColumns = zip [0..] columns
-        in sequence_ $ map (uncurry showColumn) numberedColumns
+    sequence_ $ map (uncurry showColumn) (zip [0..] columns)
          
 -- align card with id, css class, column, depth in column
 alignTableCard :: String -> String -> Int -> Int -> IO ()
@@ -140,9 +139,10 @@ onDragEnd game@(Game _ cg _ _) jsCardId x y =
     in if draggedToColumn then 
            let sourceColumnIndex = columnIndexFromJSCardId jsCardId game
                destColumnIndex  = min 6 $ (x - xColumnPlacement) `div` xSep
-               isValidMove = case sourceColumnIndex 
-                             of Nothing -> False
-                                Just sourceColumnIndex' -> (last.visible $ cg !! sourceColumnIndex') `goesOnColumn` (cg !! destColumnIndex)
+               isValidMove = 
+                   case sourceColumnIndex of 
+                      Nothing -> False
+                      Just sourceColumnIndex' -> (last.visible $ cg !! sourceColumnIndex') `goesOnColumn` (cg !! destColumnIndex)
                validSourceColumnIndex = fromMaybe 0 sourceColumnIndex 
 
            in if isValidMove then do

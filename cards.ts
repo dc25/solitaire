@@ -49,7 +49,7 @@ function dragend(d) {
     B(A(dragEndCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
 }
 
-// Provide for callback into haskell when object stops being dragged.
+// Provide for callback into haskell when mouse passes over object
 var mouseoverCallback;
 
 // Called from haskell
@@ -57,10 +57,10 @@ function setMouseoverCallback_ffi(cb) {
     mouseoverCallback = cb;
 }
 
-// Define dragend behavior - just call back into haskell.
+// Define mouseover behavior - just call back into haskell.
 function mouseover(d,i) {
 
-    // additional select("g") because card is nested below dragged object
+    // additional select("g") because card is nested below event object
     var draggedId:string = d3.select(this).select("g").attr("id");
 
     var coordinates = d3.mouse(this.parentNode);
@@ -143,6 +143,10 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
         var selectArg = "g[class=" + classname + "]";
         d3.select(selectArg).call(drag);
     }
+}
+
+function deleteBySelectionString_ffi(cssSelection:string) {
+    d3.selectAll(cssSelection).remove()
 }
 
 function loadCards_ffi(cb) {

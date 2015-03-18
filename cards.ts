@@ -8,7 +8,7 @@ var A:any;
 var B:any;
 
 // For debugging.
-function showAlert(msg:string) {
+function showAlert_ffi(msg:string) {
         alert(msg);
 }
 
@@ -32,7 +32,7 @@ function dragmove(d) {
 var dragEndCallback;
 
 // Called from haskell
-function setDragEndCallback(cb) {
+function setDragEndCallback_ffi(cb) {
     dragEndCallback = cb;
 }
 
@@ -49,7 +49,7 @@ function dragend(d) {
     B(A(dragEndCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
 }
 
-function placeCard(name:string, x:number, y:number) {
+function placeCard_ffi(name:string, x:number, y:number) {
     var card = document.getElementById(name);
 
     // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
@@ -77,7 +77,7 @@ function placeCard(name:string, x:number, y:number) {
     });
 }
 
-function loadCards(cb) {
+function loadCards_ffi(cb) {
     //Import the full deck of cards.
     d3.xml("pretty-svg-cards.svg", "image/svg+xml", function(xml) {  
 

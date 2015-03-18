@@ -66,15 +66,26 @@ placeTableCard id cssClass columnIndex positionInColumn =
                   (xColumnPlacement+ xSep*columnIndex) 
                   (yColumnPlacement+ ySep*positionInColumn)
 
+-- assign vindex indicating depth in column to each hidden card in column
+-- display back of card in column position specified by (hindex,vindex)
+showHiddenColumn :: Int -> Column -> IO ()
+showHiddenColumn hindex (Column hidden _) = 
+    sequence_ (map ph $ zip [0..] hidden)
+            where ph (vindex,_) = placeTableCard "back" ("hiddenColumn"++show hindex) hindex vindex
+
+-- assign vindex indicating depth in column to each visible card in column
+-- display card in column position specified by (hindex,vindex)
+showVisibleColumn :: Int -> Column -> IO ()
+showVisibleColumn hindex (Column hidden visible) = 
+    sequence_ (map pc $ zip [length hidden..] (reverse visible))
+            where pc (vindex,card) = placeTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
+
 -- assign vindex indicating depth in column to each card in column
 -- display card in column position specified by (hindex,vindex)
 showColumn :: Int -> Column -> IO ()
-showColumn hindex (Column hidden visible) = 
-    let showHidden = (map ph $ zip [0..] hidden)
-            where ph (vindex,_) = placeTableCard "back" ("hiddenColumn"++show hindex) hindex vindex
-        showVisible = (map pc $ zip [length hidden..] (reverse visible))
-            where pc (vindex,card) = placeTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
-    in sequence_ $ showHidden++showVisible
+showColumn hindex column = do
+    showHiddenColumn hindex column
+    showVisibleColumn hindex column
 
 showGame :: Game -> IO ()
 showGame game@(Game foundations columns deck reserves)  = 
@@ -116,8 +127,9 @@ columnIndexFromJSCardId jsStr cg = do
 
 onMouseover :: Game -> JSString -> Int -> Int -> IO ()
 onMouseover game jsCardId x y =
+        return ()
        -- let sourceColumnIndex = columnIndexFromJSCardId jsCardId cg
-       showAlert_ffi jsCardId
+       -- showAlert_ffi jsCardId
 
 onDragEnd :: Game -> JSString -> Int -> Int -> IO ()
 onDragEnd game@(Game _ cg _ _) jsCardId x y = 

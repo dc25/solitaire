@@ -68,13 +68,13 @@ function alignCard_ffi(name:string, classname:string, x:number, y:number) {
     var baseOffset = getBaseOffset(card);
 
     d3.select('body svg g[data-name="' +name +'"]')
-        .attr("class", function(d, i){ 
-                   return classname; 
-               }
-             )
         .data([{xtranslate:(0      + x/cardScale - baseOffset.x),
                 ytranslate:(235.27 + y/cardScale - baseOffset.y)
                 }]
+             )
+        .attr("class", function(d, i){ 
+                   return classname; 
+               }
              )
         .transition()
         .attr("transform", function(d, i){ 
@@ -108,11 +108,11 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
                 }]
              )
         .attr("transform", function(d, i){ 
-                   return "scale (" + cardScale + ")"
-                                    + "translate (" + d.xtranslate + "," 
-                                                    +  d.ytranslate + ")" ;
+                 return "scale (" + cardScale + ")"
+                      + "translate (" + d.xtranslate + "," + d.ytranslate + ")" ;
                }
-             );
+             )
+        ;
 
     // There must be a better way of enabling drag 
     // for new cards in a visble column.

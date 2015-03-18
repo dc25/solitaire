@@ -36,7 +36,7 @@ suitColor Clubs =    Black
 data Card = Card {
          rank :: Rank,
          suit :: Suit 
-         } 
+         } deriving  (Eq)
 
 cardColor:: Card -> Color
 cardColor (Card _ suit') = suitColor suit'

@@ -75,8 +75,8 @@ goesOnFoundation card (fh:_) =
     (suit card == suit fh) && fromEnum (rank card) == fromEnum (rank fh) + 1
 
 -- find the index of the column containing the Card in its visible section
-columnIndex :: Card -> [Column] -> Maybe Int
-columnIndex card cg = findIndex (elem card) $ map visible cg
+columnIndex :: Card -> Game -> Maybe Int
+columnIndex card (Game _ cg _ _) = findIndex (elem card) $ map visible cg
 
 -- if the visible portion of a column is empty
 -- then "replenish" it with one card from the concealed

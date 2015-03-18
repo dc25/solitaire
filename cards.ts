@@ -112,6 +112,11 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
                       + "translate (" + d.xtranslate + "," + d.ytranslate + ")" ;
                }
              )
+        .on("mouseover", function(d,i){ 
+                 console.log ("mouseover");
+               } 
+           )
+
         ;
 
     // There must be a better way of enabling drag 

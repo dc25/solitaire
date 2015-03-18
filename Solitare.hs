@@ -5,7 +5,11 @@ import Haste.Prim
 import Haste.Foreign
 
 import Data.Char
+import Data.List
+import Data.Maybe
 import Control.Monad
+import Control.Applicative
+
 import Shuffle
 import Card
 import Game
@@ -23,13 +27,30 @@ rankSVGString Queen = "queen"
 rankSVGString King =  "king"
 rankSVGString r = [chr ((fromEnum r - fromEnum Ace) + ord '1')]
 
+rankSvgStrings = map rankSVGString [Ace .. King]
+
 suitSVGString :: Suit -> String
 suitSVGString Hearts =   "heart"
 suitSVGString Diamonds = "diamond"
 suitSVGString Spades =   "spade"
 suitSVGString Clubs =    "club"
 
+suitSvgStrings = map suitSVGString [Hearts .. Clubs]
+
 svgString (Card rank suit) = rankSVGString rank ++ "_" ++ suitSVGString suit
+
+fromSvgString :: String -> Maybe Card 
+fromSvgString svg = let rankAndSuit = span (/='_') svg 
+
+                        rankIndex = elemIndex (fst rankAndSuit) rankSvgStrings
+                        suitIndex = elemIndex (tail $ snd rankAndSuit) suitSvgStrings
+
+                        -- there must be a better way than nested case
+                        in case rankIndex of
+                            Nothing -> Nothing
+                            Just rank -> case suitIndex of
+                                             Nothing -> Nothing
+                                             Just suit -> Just $ Card (toEnum rank :: Rank) (toEnum suit :: Suit)
 
 xSep = 100
 ySep = 30
@@ -50,7 +71,7 @@ showColumn :: (Int, Column) -> IO ()
 showColumn (hindex, (Column hidden visible)) = 
     let showHidden = (map ph $ zip [0..] hidden)
             where ph (vindex,_) = placeTableCard "back" ("hiddenColumn"++show hindex) hindex vindex
-        showVisible = (map pc $ zip [length hidden..] visible)
+        showVisible = (map pc $ zip [length hidden..] (reverse visible))
             where pc (vindex,card) = placeTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
     in sequence_ $ showHidden++showVisible
 
@@ -71,7 +92,7 @@ alignTableCard id cssClass columnIndex positionInColumn =
 -- display card in column position specified by (hindex,vindex)
 alignColumn :: (Int, Column) -> IO ()
 alignColumn (hindex, (Column hidden visible)) = 
-    let alignVisible = (map pc $ zip [length hidden..] visible)
+    let alignVisible = (map pc $ zip [length hidden..] (reverse visible))
             where pc (vindex,card) = alignTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
     in sequence_ $ alignVisible
 
@@ -84,9 +105,33 @@ setCallbacks :: Game -> IO ()
 setCallbacks game = do
         setDragEndCallback_ffi $ (toPtr $ onDragEnd game)
 
+-- fix later to avoid dealing with [Column], a game internal
+columnIndexFromJSCardId :: JSString -> [Column] -> Maybe Int 
+columnIndexFromJSCardId jsStr cg = do
+           cardId <- fromJSString jsStr -- unwrapping a Maybe
+           card <- fromSvgString cardId -- unwrapping a Maybe
+           columnIndex card cg -- wrapping a maybe
+
 onDragEnd :: Game -> JSString -> Int -> Int -> IO ()
-onDragEnd game string x y = 
-        alignGame game  -- this is overkill - only need to align part of game.
+onDragEnd game@(Game _ cg _ _) jsCardId x y = 
+    let draggedToColumn = (y > yColumnPlacement && x > xColumnPlacement)
+    in if draggedToColumn then 
+           let sourceColumnIndex = columnIndexFromJSCardId jsCardId cg
+               destColumnIndex  = min 6 $ (x - xColumnPlacement) `div` xSep
+               isValidMove = case sourceColumnIndex 
+                           of Nothing -> False
+                              Just sourceColumnIndex' -> (last.visible $ cg !! sourceColumnIndex') `goesOnColumn` (cg !! destColumnIndex)
+               validSourceColumnIndex = fromMaybe 0 sourceColumnIndex 
+
+           in if isValidMove then do
+                   let newGame = fromColumnToColumn game validSourceColumnIndex destColumnIndex
+                   alignGame newGame
+                   setCallbacks newGame
+              else -- not a valid move for some reason
+                   alignGame game
+       else -- drag destination was not on a column
+           alignGame game
+
 
 loadCallback = do
     shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 

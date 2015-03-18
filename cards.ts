@@ -49,6 +49,27 @@ function dragend(d) {
     B(A(dragEndCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
 }
 
+// Provide for callback into haskell when object stops being dragged.
+var mouseoverCallback;
+
+// Called from haskell
+function setMouseoverCallback_ffi(cb) {
+    mouseoverCallback = cb;
+}
+
+// Define dragend behavior - just call back into haskell.
+function mouseover(d,i) {
+
+    // additional select("g") because card is nested below dragged object
+    var draggedId:string = d3.select(this).select("g").attr("id");
+
+    var coordinates = d3.mouse(this.parentNode);
+    var xCoord = coordinates[0];
+    var yCoord = coordinates[1];
+    
+    B(A(mouseoverCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
+}
+
 function getBaseOffset(card:HTMLElement) 
 {
     // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
@@ -112,11 +133,7 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
                       + "translate (" + d.xtranslate + "," + d.ytranslate + ")" ;
                }
              )
-        .on("mouseover", function(d,i){ 
-                 console.log ("mouseover");
-               } 
-           )
-
+        .on("mouseover", mouseover)
         ;
 
     // There must be a better way of enabling drag 

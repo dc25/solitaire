@@ -18,6 +18,7 @@ foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
 foreign import ccall placeCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall alignCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall showAlert_ffi :: JSString -> IO ()
+foreign import ccall setMouseoverCallback_ffi :: Ptr (JSString -> Int -> Int -> IO ()) -> IO ()
 foreign import ccall setDragEndCallback_ffi :: Ptr (JSString -> Int -> Int -> IO ()) -> IO ()
 
 rankSVGString :: Rank -> String
@@ -104,6 +105,7 @@ alignGame game@(Game foundations columns deck reserves)  =
 setCallbacks :: Game -> IO ()
 setCallbacks game = do
         setDragEndCallback_ffi $ (toPtr $ onDragEnd game)
+        setMouseoverCallback_ffi $ (toPtr $ onMouseover game)
 
 -- fix later to avoid dealing with [Column], a game internal
 columnIndexFromJSCardId :: JSString -> [Column] -> Maybe Int 
@@ -111,6 +113,11 @@ columnIndexFromJSCardId jsStr cg = do
            cardId <- fromJSString jsStr -- unwrapping a Maybe
            card <- fromSvgString cardId -- unwrapping a Maybe
            columnIndex card cg -- wrapping a maybe
+
+onMouseover :: Game -> JSString -> Int -> Int -> IO ()
+onMouseover game jsCardId x y =
+       -- let sourceColumnIndex = columnIndexFromJSCardId jsCardId cg
+       showAlert_ffi jsCardId
 
 onDragEnd :: Game -> JSString -> Int -> Int -> IO ()
 onDragEnd game@(Game _ cg _ _) jsCardId x y = 

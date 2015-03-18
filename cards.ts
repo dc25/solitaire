@@ -62,6 +62,10 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
 
     d3.select("body svg")
         .append("g")
+        .each(function(d, i) { 
+                   this.appendChild(card.cloneNode(true)); 
+               }
+               )
         .data([{xtranslate:(0      + x/cardScale - xOffset),
                 ytranslate:(235.27 + y/cardScale - yOffset)
                 }]
@@ -75,11 +79,7 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
                                     + "translate (" + d.xtranslate + "," 
                                                     +  d.ytranslate + ")" ;
                }
-             )
-        .each(function(d, i) { 
-                   this.appendChild(card.cloneNode(true)); 
-               }
-           );
+             );
 
     // There must be a better way of enabling drag 
     // for new cards in a visble column.

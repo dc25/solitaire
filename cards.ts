@@ -57,8 +57,8 @@ function alignCard_ffi(name:string, classname:string, x:number, y:number) {
     var queryString = 'use[*|href="#base"]';
     var base = d3.select(card).select(queryString);
 
-    var xOffset:number = parseInt(base.attr("x"));
-    var yOffset:number = parseInt(base.attr("y"));
+    var xOffset = parseInt(base.attr("x"));
+    var yOffset = parseInt(base.attr("y"));
 
     d3.select('body svg g[data-name="' +name +'"]')
         .attr("class", function(d, i){ 
@@ -71,11 +71,11 @@ function alignCard_ffi(name:string, classname:string, x:number, y:number) {
              )
         .transition()
         .attr("transform", function(d, i){ 
-                   return "scale (" + cardScale + ")"
-                                    + "translate (" + d.xtranslate + "," 
-                                                    +  d.ytranslate + ")" ;
+                 return "scale (" + cardScale + ")"
+                      + "translate (" + d.xtranslate + "," + d.ytranslate + ")" ;
                }
-             );
+             )
+        ;
 }
 
 function placeCard_ffi(name:string, classname:string, x:number, y:number) {

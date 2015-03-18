@@ -49,7 +49,7 @@ function dragend(d) {
     B(A(dragEndCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
 }
 
-function placeCard_ffi(name:string, x:number, y:number) {
+function placeCard_ffi(name:string, classname:string, x:number, y:number) {
     var card = document.getElementById(name);
 
     // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
@@ -62,19 +62,33 @@ function placeCard_ffi(name:string, x:number, y:number) {
 
     d3.select("body svg")
         .append("g")
-        .call(drag)
         .data([{xtranslate:(0      + x/cardScale - xOffset),
                 ytranslate:(235.27 + y/cardScale - yOffset)
-               }])
+                }]
+             )
+        .attr("class", function(d, i){ 
+                   return classname;
+               }
+             )
         .attr("transform", function(d, i){ 
-        return ""
-                + "scale (" + cardScale + ")"
-                + "translate (" + d.xtranslate + "," +  d.ytranslate + ")" 
-        ;
-    })
-    .each(function(d, i) { 
-       this.appendChild(card.cloneNode(true)); 
-    });
+                   return "scale (" + cardScale + ")"
+                                    + "translate (" + d.xtranslate + "," 
+                                                    +  d.ytranslate + ")" ;
+               }
+             )
+        .each(function(d, i) { 
+                   this.appendChild(card.cloneNode(true)); 
+               }
+           );
+
+    // There must be a better way of enabling drag 
+    // for new cards in a visble column.
+    if (classname.indexOf("visibleColumn") > -1)
+    {
+        var selectArg = "g[class=" + classname + "]";
+        alert(selectArg);
+        d3.select(selectArg).call(drag);
+    }
 }
 
 function loadCards_ffi(cb) {

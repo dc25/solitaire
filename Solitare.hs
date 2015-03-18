@@ -35,13 +35,22 @@ ySep = 30
 xColumnPlacement = 200
 yColumnPlacement = 100
 
+-- place card with id, css class, column, depth in column
+placeTableCard :: String -> String -> Int -> Int -> IO ()
+placeTableCard id cssClass columnIndex positionInColumn =
+        placeCard_ffi (toJSStr $ id) 
+                  (xColumnPlacement+ xSep*columnIndex) 
+                  (yColumnPlacement+ ySep*positionInColumn)
+
+-- assign vindex indicating depth in column to each card in column
+-- display card in column position specified by (hindex,vindex)
 showColumn :: (Int, Column) -> IO ()
 showColumn (hindex, (Column hidden visible)) = 
-        let showHidden = (map ph $ zip [0..] hidden)
-                where ph (vindex,_) = placeCard_ffi (toJSStr $ "back") (xColumnPlacement+ xSep*hindex) (yColumnPlacement+ ySep*vindex)
-            showVisible = (map pc $ zip [length hidden..] visible)
-                where pc (vindex,card) = placeCard_ffi (toJSStr $ svgString card) (xColumnPlacement+ xSep*hindex) (yColumnPlacement+ ySep*vindex)
-        in sequence_ $ showHidden++showVisible
+    let showHidden = (map ph $ zip [0..] hidden)
+            where ph (vindex,_) = placeTableCard "back" "dummy" hindex vindex
+        showVisible = (map pc $ zip [length hidden..] visible)
+            where pc (vindex,card) = placeTableCard (svgString card) "dummy" hindex vindex
+    in sequence_ $ showHidden++showVisible
 
 showGame :: Game -> IO ()
 showGame game@(Game foundations columns deck reserves)  = 

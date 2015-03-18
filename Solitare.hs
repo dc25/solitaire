@@ -11,7 +11,7 @@ import Card
 import Game
 
 foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
-foreign import ccall placeCard_ffi :: JSString -> Int -> Int -> IO ()
+foreign import ccall placeCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall showAlert_ffi :: JSString -> IO ()
 foreign import ccall setDragEndCallback_ffi :: Ptr (JSString -> Int -> Int -> IO ()) -> IO ()
 
@@ -38,7 +38,8 @@ yColumnPlacement = 100
 -- place card with id, css class, column, depth in column
 placeTableCard :: String -> String -> Int -> Int -> IO ()
 placeTableCard id cssClass columnIndex positionInColumn =
-        placeCard_ffi (toJSStr $ id) 
+        placeCard_ffi (toJSStr id) 
+                  (toJSStr cssClass)
                   (xColumnPlacement+ xSep*columnIndex) 
                   (yColumnPlacement+ ySep*positionInColumn)
 
@@ -47,9 +48,9 @@ placeTableCard id cssClass columnIndex positionInColumn =
 showColumn :: (Int, Column) -> IO ()
 showColumn (hindex, (Column hidden visible)) = 
     let showHidden = (map ph $ zip [0..] hidden)
-            where ph (vindex,_) = placeTableCard "back" "dummy" hindex vindex
+            where ph (vindex,_) = placeTableCard "back" ("hiddenColumn"++show hindex) hindex vindex
         showVisible = (map pc $ zip [length hidden..] visible)
-            where pc (vindex,card) = placeTableCard (svgString card) "dummy" hindex vindex
+            where pc (vindex,card) = placeTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
     in sequence_ $ showHidden++showVisible
 
 showGame :: Game -> IO ()

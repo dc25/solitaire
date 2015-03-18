@@ -59,7 +59,7 @@ showGame game@(Game foundations columns deck reserves)  =
         let numberedColumns = zip [0..] columns
         in sequence_ $ map showColumn numberedColumns
          
--- place card with id, css class, column, depth in column
+-- align card with id, css class, column, depth in column
 alignTableCard :: String -> String -> Int -> Int -> IO ()
 alignTableCard id cssClass columnIndex positionInColumn =
         alignCard_ffi (toJSStr id) 
@@ -86,7 +86,7 @@ setCallbacks game = do
 
 onDragEnd :: Game -> JSString -> Int -> Int -> IO ()
 onDragEnd game string x y = 
-        alignGame game
+        alignGame game  -- this is overkill - only need to align part of game.
 
 loadCallback = do
     shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 

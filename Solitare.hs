@@ -68,8 +68,8 @@ placeTableCard id cssClass columnIndex positionInColumn =
 
 -- assign vindex indicating depth in column to each card in column
 -- display card in column position specified by (hindex,vindex)
-showColumn :: (Int, Column) -> IO ()
-showColumn (hindex, (Column hidden visible)) = 
+showColumn :: Int -> Column -> IO ()
+showColumn hindex (Column hidden visible) = 
     let showHidden = (map ph $ zip [0..] hidden)
             where ph (vindex,_) = placeTableCard "back" ("hiddenColumn"++show hindex) hindex vindex
         showVisible = (map pc $ zip [length hidden..] (reverse visible))
@@ -79,7 +79,7 @@ showColumn (hindex, (Column hidden visible)) =
 showGame :: Game -> IO ()
 showGame game@(Game foundations columns deck reserves)  = 
         let numberedColumns = zip [0..] columns
-        in sequence_ $ map showColumn numberedColumns
+        in sequence_ $ map (uncurry showColumn) numberedColumns
          
 -- align card with id, css class, column, depth in column
 alignTableCard :: String -> String -> Int -> Int -> IO ()
@@ -91,8 +91,8 @@ alignTableCard id cssClass columnIndex positionInColumn =
 
 -- assign vindex indicating depth in column to each card in column
 -- display card in column position specified by (hindex,vindex)
-alignColumn :: (Int, Column) -> IO ()
-alignColumn (hindex, (Column hidden visible)) = 
+alignColumn :: Int -> Column -> IO ()
+alignColumn hindex (Column hidden visible) = 
     let alignVisible = (map pc $ zip [length hidden..] (reverse visible))
             where pc (vindex,card) = alignTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
     in sequence_ $ alignVisible
@@ -100,7 +100,7 @@ alignColumn (hindex, (Column hidden visible)) =
 alignGame :: Game -> IO ()
 alignGame game@(Game foundations columns deck reserves)  = 
         let numberedColumns = zip [0..] columns
-        in sequence_ $ map alignColumn numberedColumns
+        in sequence_ $ map (uncurry alignColumn) numberedColumns
          
 setCallbacks :: Game -> IO ()
 setCallbacks game = do

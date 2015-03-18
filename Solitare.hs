@@ -112,10 +112,10 @@ alignGame game@(Game foundations columns deck reserves)  =
         let numberedColumns = zip [0..] columns
         in sequence_ $ map (uncurry alignColumn) numberedColumns
          
-setCallbacks :: Game -> IO ()
-setCallbacks game = do
-        setDragEndCallback_ffi $ (toPtr $ onDragEnd game)
-        setMouseoverCallback_ffi $ (toPtr $ onMouseover game)
+setCallbacks :: Game -> Maybe String -> IO ()
+setCallbacks game topClass = do
+        setDragEndCallback_ffi $ (toPtr $ onDragEnd game topClass)
+        setMouseoverCallback_ffi $ (toPtr $ onMouseover game topClass)
 
 columnIndexFromJSCardId :: JSString -> Game -> Maybe Int 
 columnIndexFromJSCardId jsStr game = do
@@ -123,18 +123,22 @@ columnIndexFromJSCardId jsStr game = do
     card <- fromSvgString cardId -- unwrapping a Maybe
     columnIndex card game -- wrapping a maybe
 
-onMouseover :: Game -> JSString -> Int -> Int -> IO ()
-onMouseover game@(Game _ cg _ _) jsCardId x y =
+onMouseover :: Game -> Maybe String -> JSString -> Int -> Int -> IO ()
+onMouseover game@(Game _ cg _ _) topClass jsCardId x y =
     let sourceColumnIndex = columnIndexFromJSCardId jsCardId game
     in case sourceColumnIndex of
            Nothing -> return ()
            Just sourceColumnIndex' -> do
-               return ()
-               -- deleteBySelectionString_ffi $ toJSStr (".visibleColumn" ++ show sourceColumnIndex')
-               -- showVisibleColumn sourceColumnIndex' (cg !! sourceColumnIndex')
+               let newTopClass = (".visibleColumn" ++ show sourceColumnIndex')
+               if (Just newTopClass /= topClass) then do
+                   deleteBySelectionString_ffi $ toJSStr newTopClass
+                   showVisibleColumn sourceColumnIndex' (cg !! sourceColumnIndex')
+                   setCallbacks game $ Just newTopClass
+               else
+                   return ()
 
-onDragEnd :: Game -> JSString -> Int -> Int -> IO ()
-onDragEnd game@(Game _ cg _ _) jsCardId x y = 
+onDragEnd :: Game -> Maybe String -> JSString -> Int -> Int -> IO ()
+onDragEnd game@(Game _ cg _ _) topClass jsCardId x y = 
     let draggedToColumn = (y > yColumnPlacement && x > xColumnPlacement)
     in if draggedToColumn then 
            let sourceColumnIndex = columnIndexFromJSCardId jsCardId game
@@ -148,7 +152,7 @@ onDragEnd game@(Game _ cg _ _) jsCardId x y =
            in if isValidMove then do
                    let newGame = fromColumnToColumn game validSourceColumnIndex destColumnIndex
                    alignGame newGame
-                   setCallbacks newGame
+                   setCallbacks newGame topClass
               else -- not a valid move for some reason
                    alignGame game
        else -- drag destination was not on a column
@@ -164,7 +168,7 @@ loadCallback = do
         game = Game foundations' columns' deck' shuffledDeck
         gameInPlay = start game
     showGame $ gameInPlay
-    setCallbacks gameInPlay
+    setCallbacks gameInPlay Nothing
 
 main = do 
           loadCards_ffi(toPtr loadCallback)

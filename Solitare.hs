@@ -86,8 +86,7 @@ setCallbacks game = do
 
 onDragEnd :: Game -> JSString -> Int -> Int -> IO ()
 onDragEnd game string x y = 
-        let string' = fromJSStr string ++ " " ++ show x ++ " " ++ show y
-        in showAlert_ffi $ toJSStr string'
+        alignGame game
 
 loadCallback = do
     shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 

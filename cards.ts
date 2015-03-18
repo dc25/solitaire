@@ -49,6 +49,35 @@ function dragend(d) {
     B(A(dragEndCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
 }
 
+function alignCard_ffi(name:string, classname:string, x:number, y:number) {
+    var card = document.getElementById(name);
+
+    // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
+
+    var queryString = 'use[*|href="#base"]';
+    var base = d3.select(card).select(queryString);
+
+    var xOffset:number = parseInt(base.attr("x"));
+    var yOffset:number = parseInt(base.attr("y"));
+
+    d3.select('body svg g[data-name="' +name +'"]')
+        .attr("class", function(d, i){ 
+                   return classname; 
+               }
+             )
+        .data([{xtranslate:(0      + x/cardScale - xOffset),
+                ytranslate:(235.27 + y/cardScale - yOffset)
+                }]
+             )
+        .transition()
+        .attr("transform", function(d, i){ 
+                   return "scale (" + cardScale + ")"
+                                    + "translate (" + d.xtranslate + "," 
+                                                    +  d.ytranslate + ")" ;
+               }
+             );
+}
+
 function placeCard_ffi(name:string, classname:string, x:number, y:number) {
     var card = document.getElementById(name);
 

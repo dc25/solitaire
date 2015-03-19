@@ -88,8 +88,8 @@ deleteColumn hindex = do
 
 
 -- place card with id, css class, column, depth in column
-placeTableCard :: String -> String -> Int -> Int -> IO ()
-placeTableCard id cssClass columnIndex positionInColumn =
+placeTableCard :: String -> String -> String -> Int -> Int -> IO ()
+placeTableCard id name cssClass columnIndex positionInColumn =
         placeCard_ffi (toJSStr id) 
                   (toJSStr id)
                   (toJSStr cssClass)
@@ -125,21 +125,21 @@ placeReservesCard id name cssClass =
 -- display blanks to indicate where cards go if column is empty.
 showEmptyColumn :: Int -> IO ()
 showEmptyColumn hindex = 
-    placeTableCard "base_only" ("emptyColumn"++show hindex) hindex 0
+    placeTableCard "base_only" ("emptyColumn"++show hindex) "emptyColumn" hindex 0
 
 -- assign vindex indicating depth in column to each hidden card in column
 -- display back of card in column position specified by (hindex,vindex)
 showHiddenColumn :: Int -> Column -> IO ()
 showHiddenColumn hindex (Column hidden _) = 
     sequence_ (map ph $ zip [0..] hidden)
-            where ph (vindex,_) = placeTableCard "back" ("hiddenColumn"++show hindex) hindex vindex
+            where ph (vindex,card) = placeTableCard "back" (svgString card) ("hiddenColumn"++show hindex) hindex vindex
 
 -- assign vindex indicating depth in column to each visible card in column
 -- display card in column position specified by (hindex,vindex)
 showVisibleColumn :: Int -> Column -> IO ()
 showVisibleColumn hindex (Column hidden visible) = 
     sequence_ (map pc $ zip [length hidden..] (reverse visible))
-            where pc (vindex,card) = placeTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
+            where pc (vindex,card) = placeTableCard (svgString card) (svgString card) ("visibleColumn"++show hindex) hindex vindex
 
 -- assign vindex indicating depth in column to each card in column
 -- display card in column position specified by (hindex,vindex)

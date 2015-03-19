@@ -259,13 +259,12 @@ onDragEnd game@(Game fg cg _ _) topClass jsCardId jsClassName x y =
            in if isValidMove then do
                    let newGame@(Game _ ncg _ _) = fromColumnToColumn game validSourceColumnIndex destColumnIndex
                        newTopClass = (".visibleColumn" ++ show validSourceColumnIndex)
-                   alignGame newGame
+                   alignColumn destColumnIndex $ ncg !! destColumnIndex
                    deleteColumn validSourceColumnIndex
                    showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex
-
                    setCallbacks newGame $ Just newTopClass
               else -- not a valid move for some reason
-                   alignGame game
+                   alignColumn validSourceColumnIndex $ cg !! validSourceColumnIndex
        else -- drag destination was not on a column.  Was it on a foundation?
            let draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
            in if draggedToFoundation then 
@@ -278,13 +277,13 @@ onDragEnd game@(Game fg cg _ _) topClass jsCardId jsClassName x y =
                       validSourceColumnIndex = fromMaybe 0 sourceColumnIndex 
 
                   in if isValidMove then do
-                          let newGame@(Game _ ncg _ _) = fromColumnToFoundation game validSourceColumnIndex destFoundationIndex
-                          alignGame newGame
+                          let newGame@(Game nfg ncg _ _) = fromColumnToFoundation game validSourceColumnIndex destFoundationIndex
+                          alignFoundation destFoundationIndex $ nfg !! destFoundationIndex
                           deleteColumn validSourceColumnIndex
                           showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex
                           setCallbacks newGame $ topClass -- nothing new on table - no need to change topClass 
                      else -- not a valid move for some reason
-                          alignGame game
+                          alignColumn validSourceColumnIndex $ cg !! validSourceColumnIndex
               else -- drag destination was not on a column or foundation.  
                   alignGame game
 

@@ -45,17 +45,18 @@ svgString (Card rank suit) = rankSVGString rank ++ "_" ++ suitSVGString suit
 
 -- conversion from javascript id to Card
 fromSvgString :: String -> Maybe Card 
-fromSvgString svg = let rankAndSuit = span (/='_') svg 
+fromSvgString svg = 
+    let rankAndSuit = span (/='_') svg 
 
-                        rankIndex = elemIndex (fst rankAndSuit) rankSvgStrings
-                        suitIndex = elemIndex (tail $ snd rankAndSuit) suitSvgStrings
+        rankIndex = elemIndex (fst rankAndSuit) rankSvgStrings
+        suitIndex = elemIndex (tail $ snd rankAndSuit) suitSvgStrings
 
-                        -- there must be a better way than nested case
-                        in case rankIndex of
-                            Nothing -> Nothing
-                            Just rank -> case suitIndex of
-                                             Nothing -> Nothing
-                                             Just suit -> Just $ Card (toEnum rank :: Rank) (toEnum suit :: Suit)
+        -- there must be a better way than nested case
+        in case rankIndex of
+            Nothing -> Nothing
+            Just rank -> case suitIndex of
+                             Nothing -> Nothing
+                             Just suit -> Just $ Card (toEnum rank :: Rank) (toEnum suit :: Suit)
 
 xSep = 90
 ySep = 20
@@ -147,10 +148,25 @@ alignColumn hindex (Column hidden visible) =
     sequence_ (map pc $ zip [length hidden..] (reverse visible))
             where pc (vindex,card) = alignTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
 
+-- align card with id, css class, column
+alignFoundationCard :: String -> String -> Int -> IO ()
+alignFoundationCard id cssClass foundationIndex =
+    let positionInFoundation = 0 
+    in alignCard_ffi (toJSStr id) 
+              (toJSStr cssClass)
+              (xFoundationPlacement+ xSep*foundationIndex) 
+              (yFoundationPlacement+ ySep*positionInFoundation)
+
+-- display card in foundation position specified by hindex
+alignFoundation:: Int -> [Card] -> IO ()
+alignFoundation hindex foundation = 
+    sequence_ (map pc $ (reverse foundation))
+            where pc card = alignFoundationCard (svgString card) ("foundation"++show hindex) hindex 
+
 alignGame :: Game -> IO ()
-alignGame game@(Game foundations columns deck reserves)  = 
-        let numberedColumns = zip [0..] columns
-        in sequence_ $ map (uncurry alignColumn) numberedColumns
+alignGame game@(Game foundations columns deck reserves)  = do
+        sequence_ $ map (uncurry alignColumn) $ zip [0..] columns
+        sequence_ $ map (uncurry alignFoundation) $ zip [0..] foundations
          
 setCallbacks :: Game -> Maybe String -> IO ()
 setCallbacks game topClass = do
@@ -178,8 +194,8 @@ onMouseover game@(Game _ cg _ _) topClass jsCardId x y =
                    return ()
 
 onDragEnd :: Game -> Maybe String -> JSString -> Int -> Int -> IO ()
-onDragEnd game@(Game _ cg _ _) topClass jsCardId x y = 
-    let draggedToColumn = (y > yColumnPlacement && x > xColumnPlacement)
+onDragEnd game@(Game fg cg _ _) topClass jsCardId x y = 
+    let draggedToColumn = (y >= yColumnPlacement && x >= xColumnPlacement)
     in if draggedToColumn then 
            let sourceColumnIndex = columnIndexFromJSCardId jsCardId game
                destColumnIndex  = min 6 $ (x - xColumnPlacement) `div` xSep
@@ -198,8 +214,27 @@ onDragEnd game@(Game _ cg _ _) topClass jsCardId x y =
                    setCallbacks newGame $ Just newTopClass
               else -- not a valid move for some reason
                    alignGame game
-       else -- drag destination was not on a column
-           alignGame game
+       else -- drag destination was not on a column.  Was it on a foundation?
+           let draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
+           in if draggedToFoundation then 
+                  let sourceColumnIndex = columnIndexFromJSCardId jsCardId game
+                      destFoundationIndex  = min 3 $ (x - xFoundationPlacement) `div` xSep
+                      isValidMove = 
+                          case sourceColumnIndex of 
+                             Nothing -> False
+                             Just sourceColumnIndex' -> (last.visible $ cg !! sourceColumnIndex') `goesOnFoundation` (fg !! destFoundationIndex)
+                      validSourceColumnIndex = fromMaybe 0 sourceColumnIndex 
+
+                  in if isValidMove then do
+                          let newGame@(Game _ ncg _ _) = fromColumnToFoundation game validSourceColumnIndex destFoundationIndex
+                          alignGame newGame
+                          deleteColumn validSourceColumnIndex
+                          showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex
+                          setCallbacks newGame $ topClass -- nothing new on table - no need to change topClass 
+                     else -- not a valid move for some reason
+                          alignGame game
+              else -- drag destination was not on a column or foundation.  
+                  alignGame game
 
 
 loadCallback = do

@@ -463,6 +463,9 @@
   </defs> 
 
   <g x="0" y="0"> 
+    <g id="base_only"> 
+      <use x="0" xlink:href="#base" y="0"/> 
+    </g> 
     <g id="1_club"> 
       <use x="0" xlink:href="#base" y="0"/> 
       <use x="4" xlink:href="#ace" y="-199.117"/> 

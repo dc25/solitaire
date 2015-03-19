@@ -14,6 +14,7 @@ import Shuffle
 import Card
 import Game
 
+-- javascript functionality
 foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
 foreign import ccall placeCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall alignCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
@@ -39,8 +40,10 @@ suitSVGString Clubs =    "club"
 
 suitSvgStrings = map suitSVGString [Hearts .. Clubs]
 
+-- conversion from Card to javascript id
 svgString (Card rank suit) = rankSVGString rank ++ "_" ++ suitSVGString suit
 
+-- conversion from javascript id to Card
 fromSvgString :: String -> Maybe Card 
 fromSvgString svg = let rankAndSuit = span (/='_') svg 
 
@@ -54,10 +57,10 @@ fromSvgString svg = let rankAndSuit = span (/='_') svg
                                              Nothing -> Nothing
                                              Just suit -> Just $ Card (toEnum rank :: Rank) (toEnum suit :: Suit)
 
-xSep = 100
-ySep = 30
-xColumnPlacement = 200
-yColumnPlacement = 200
+xSep = 90
+ySep = 20
+xColumnPlacement = 40
+yColumnPlacement = 160
 
 xFoundationPlacement = xColumnPlacement + 3 * xSep
 yFoundationPlacement = yColumnPlacement - 150

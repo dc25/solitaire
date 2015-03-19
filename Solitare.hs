@@ -87,6 +87,11 @@ placeTableCard id cssClass columnIndex positionInColumn =
                   (xColumnPlacement+ xSep*columnIndex) 
                   (yColumnPlacement+ ySep*positionInColumn)
 
+-- display blanks to indicate where cards go if column is empty.
+showEmptyColumn :: Int -> IO ()
+showEmptyColumn hindex = 
+    placeTableCard "base_only" ("emptyColumn"++show hindex) hindex 0
+
 -- assign vindex indicating depth in column to each hidden card in column
 -- display back of card in column position specified by (hindex,vindex)
 showHiddenColumn :: Int -> Column -> IO ()
@@ -105,6 +110,7 @@ showVisibleColumn hindex (Column hidden visible) =
 -- display card in column position specified by (hindex,vindex)
 showColumn :: Int -> Column -> IO ()
 showColumn hindex column = do
+    showEmptyColumn hindex 
     showHiddenColumn hindex column
     showVisibleColumn hindex column
 

@@ -107,15 +107,9 @@ placeFoundationCard id cssClass hindex =
                   (yFoundationPlacement+ ySep*vindex)
 
 -- place card with id, class, on deck
-placeDeckCard :: String -> String -> IO ()
-placeDeckCard id cssClass =
-        let vindex = 0
-            hindex = 0
-        in placeCard_ffi (toJSStr id) 
-                  (toJSStr id)
-                  (toJSStr cssClass)
-                  (xDeckPlacement+ xSep*hindex) 
-                  (yDeckPlacement+ ySep*vindex)
+placeDeckCard :: String -> String -> String -> IO ()
+placeDeckCard id name cssClass =
+    placeCard_ffi (toJSStr id) (toJSStr name) (toJSStr cssClass) xDeckPlacement yDeckPlacement
 
 -- place card with id, class, on reserves
 placeReservesCard :: String -> String -> String -> IO ()
@@ -155,7 +149,8 @@ showFoundation hindex foundation = do
 
 showDeck :: [Card] -> IO ()
 showDeck deck = do
-    placeDeckCard "base_only" "emptyDeck" 
+    placeDeckCard "base_only" "base_only" "emptyDeck" 
+    sequence_ $ map (\card -> placeDeckCard (svgString card) (svgString card) "hiddenDeck") deck
 
 showReserves :: [Card] -> IO ()
 showReserves deck = do
@@ -171,8 +166,8 @@ showGame game@(Game foundations columns deck reserves)  =  do
          
 -- align card with id, css class, column, depth in column
 alignTableCard :: String -> String -> Int -> Int -> IO ()
-alignTableCard id cssClass columnIndex positionInColumn =
-        alignCard_ffi (toJSStr id) 
+alignTableCard name cssClass columnIndex positionInColumn =
+        alignCard_ffi (toJSStr name) 
                   (toJSStr cssClass)
                   (xColumnPlacement+ xSep*columnIndex) 
                   (yColumnPlacement+ ySep*positionInColumn)
@@ -186,9 +181,9 @@ alignColumn hindex (Column hidden visible) =
 
 -- align card in foundation with id, css class, column
 alignFoundationCard :: String -> String -> Int -> IO ()
-alignFoundationCard id cssClass foundationIndex =
+alignFoundationCard name cssClass foundationIndex =
     let positionInFoundation = 0 
-    in alignCard_ffi (toJSStr id) 
+    in alignCard_ffi (toJSStr name) 
               (toJSStr cssClass)
               (xFoundationPlacement+ xSep*foundationIndex) 
               (yFoundationPlacement+ ySep*positionInFoundation)
@@ -199,18 +194,23 @@ alignFoundation hindex foundation =
     sequence_ (map pc $ (reverse foundation))
             where pc card = alignFoundationCard (svgString card) ("foundation"++show hindex) hindex 
 
+-- align card in deck with id, css 
+alignDeckCard :: String -> String -> IO ()
+alignDeckCard name cssClass =
+    alignCard_ffi (toJSStr name) (toJSStr cssClass) xReservesPlacement yReservesPlacement
+
 alignDeck :: [Card] -> IO ()
 alignDeck deck = do
-    placeDeckCard "base_only" "emptyDeck" 
+    sequence_ $ map (\card -> alignDeckCard (svgString card) "hiddenDeck") deck
 
--- align card in reserves with id, css 
+-- align card in reserves with name, css 
 alignReservesCard :: String -> String -> IO ()
-alignReservesCard id cssClass =
-    alignCard_ffi (toJSStr id) (toJSStr cssClass) xReservesPlacement yReservesPlacement
+alignReservesCard name cssClass =
+    alignCard_ffi (toJSStr name) (toJSStr cssClass) xReservesPlacement yReservesPlacement
 
 alignReserves :: [Card] -> IO ()
-alignReserves deck = do
-    sequence_ $ map (\card -> alignReservesCard (svgString card) "hiddenReserves") deck
+alignReserves reserves = do
+    sequence_ $ map (\card -> alignReservesCard (svgString card) "hiddenReserves") reserves
 
 alignGame :: Game -> IO ()
 alignGame game@(Game foundations columns deck reserves)  = do

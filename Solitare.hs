@@ -62,8 +62,8 @@ ySep = 20
 xColumnPlacement = 40
 yColumnPlacement = 160
 
-xFoundationPlacement = xColumnPlacement + 3 * xSep
-yFoundationPlacement = yColumnPlacement - 150
+xFoundationPlacement = xColumnPlacement + 3*xSep
+yFoundationPlacement = 20
 
 deleteHiddenColumn :: Int -> IO ()
 deleteHiddenColumn hindex = 
@@ -86,6 +86,15 @@ placeTableCard id cssClass columnIndex positionInColumn =
                   (toJSStr cssClass)
                   (xColumnPlacement+ xSep*columnIndex) 
                   (yColumnPlacement+ ySep*positionInColumn)
+
+-- place card with id, column on foundation
+placeFoundationCard :: String -> String -> Int -> IO ()
+placeFoundationCard id cssClass columnIndex =
+        let positionInColumn = 0
+        in placeCard_ffi (toJSStr id) 
+                  (toJSStr cssClass)
+                  (xFoundationPlacement+ xSep*columnIndex) 
+                  (yFoundationPlacement+ ySep*positionInColumn)
 
 -- display blanks to indicate where cards go if column is empty.
 showEmptyColumn :: Int -> IO ()
@@ -114,9 +123,14 @@ showColumn hindex column = do
     showHiddenColumn hindex column
     showVisibleColumn hindex column
 
+showFoundation :: Int -> [Card] -> IO ()
+showFoundation hindex foundation = do
+    placeFoundationCard "base_only" ("emptyFoundation"++show hindex) hindex 
+
 showGame :: Game -> IO ()
-showGame game@(Game foundations columns deck reserves)  = 
+showGame game@(Game foundations columns deck reserves)  =  do
     sequence_ $ map (uncurry showColumn) (zip [0..] columns)
+    sequence_ $ map (uncurry showFoundation) (zip [0..] foundations)
          
 -- align card with id, css class, column, depth in column
 alignTableCard :: String -> String -> Int -> Int -> IO ()
@@ -191,11 +205,11 @@ onDragEnd game@(Game _ cg _ _) topClass jsCardId x y =
 loadCallback = do
     shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 
     let
-        foundations' = replicate 4 []
-        columns' =     replicate 7 $ Column [] []
-        deck' =       []
-        game = Game foundations' columns' deck' shuffledDeck
-        gameInPlay = start game
+        foundations = replicate 4 []
+        columns     = replicate 7 $ Column [] []
+        deck        = []
+        game        = Game foundations columns deck shuffledDeck
+        gameInPlay  = start game
     showGame $ gameInPlay
     setCallbacks gameInPlay Nothing
 

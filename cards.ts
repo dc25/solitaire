@@ -154,7 +154,7 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
     if (classname.indexOf("visibleColumn") > -1)
     {
         var selectArg = "g[class=" + classname + "]";
-        d3.select(selectArg).call(drag);
+        d3.selectAll(selectArg).call(drag);
     }
 }
 

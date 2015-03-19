@@ -261,7 +261,6 @@ onDragEnd game@(Game fg cg _ _) topClass jsCardId jsClass x y =
            in if isValidMove then do
                    let newGame@(Game _ ncg _ _) = fromColumnToColumn game validSourceColumnIndex destColumnIndex
                        newTopClass = (".visibleColumn" ++ show validSourceColumnIndex)
-                   consoleLog_ffi jsClass
                    alignColumn destColumnIndex $ ncg !! destColumnIndex
                    deleteColumn validSourceColumnIndex
                    showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex

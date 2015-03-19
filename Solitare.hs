@@ -20,7 +20,7 @@ foreign import ccall placeCard_ffi :: JSString -> JSString -> JSString -> Int ->
 foreign import ccall alignCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall deleteBySelectionString_ffi :: JSString -> IO ()
 foreign import ccall showAlert_ffi :: JSString -> IO ()
-foreign import ccall setMouseoverCallback_ffi :: Ptr (JSString -> Int -> Int -> IO ()) -> IO ()
+foreign import ccall setMouseoverCallback_ffi :: Ptr (JSString -> JSString -> Int -> Int -> IO ()) -> IO ()
 foreign import ccall setDragEndCallback_ffi :: Ptr (JSString -> JSString -> Int -> Int -> IO ()) -> IO ()
 
 rankSVGString :: Rank -> String
@@ -230,8 +230,8 @@ columnIndexFromJSCardId jsStr game = do
     card <- fromSvgString cardId -- unwrapping a Maybe
     columnIndex card game -- wrapping a maybe
 
-onMouseover :: Game -> Maybe String -> JSString -> Int -> Int -> IO ()
-onMouseover game@(Game _ cg _ _) topClass jsCardId x y =
+onMouseover :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
+onMouseover game@(Game _ cg _ _) topClass jsCardId jsClass x y =
     let sourceColumnIndex = columnIndexFromJSCardId jsCardId game
     in case sourceColumnIndex of
            Nothing -> return ()
@@ -245,7 +245,7 @@ onMouseover game@(Game _ cg _ _) topClass jsCardId x y =
                    return ()
 
 onDragEnd :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
-onDragEnd game@(Game fg cg _ _) topClass jsCardId jsClassName x y = 
+onDragEnd game@(Game fg cg _ _) topClass jsCardId jsClass x y = 
     let draggedToColumn = (y >= yColumnPlacement && x >= xColumnPlacement)
     in if draggedToColumn then 
            let sourceColumnIndex = columnIndexFromJSCardId jsCardId game

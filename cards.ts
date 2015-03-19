@@ -75,14 +75,16 @@ function setMouseoverCallback_ffi(cb) {
 // Define mouseover behavior - just call back into haskell.
 function mouseover(d,i) {
 
-    // additional select("g") because card is nested below event object
-    var draggedId = d3.select(this).select("g").attr("id");
+    var moused = d3.select(this);
+
+    var mousedClassName = moused.attr("class");
+    var mousedId = moused.select("g").attr("id");
 
     var coordinates = d3.mouse(this.parentNode);
     var xCoord = coordinates[0];
     var yCoord = coordinates[1];
     
-    B(A(mouseoverCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
+    B(A(mouseoverCallback, [[0,mousedId], [0,mousedClassName], [0,xCoord], [0,yCoord], 0]));
 }
 
 function getBaseOffset(card:HTMLElement) 

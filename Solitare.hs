@@ -16,7 +16,7 @@ import Game
 
 -- javascript functionality
 foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
-foreign import ccall placeCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
+foreign import ccall placeCard_ffi :: JSString -> JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall alignCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall deleteBySelectionString_ffi :: JSString -> IO ()
 foreign import ccall showAlert_ffi :: JSString -> IO ()
@@ -91,6 +91,7 @@ deleteColumn hindex = do
 placeTableCard :: String -> String -> Int -> Int -> IO ()
 placeTableCard id cssClass columnIndex positionInColumn =
         placeCard_ffi (toJSStr id) 
+                  (toJSStr id)
                   (toJSStr cssClass)
                   (xColumnPlacement+ xSep*columnIndex) 
                   (yColumnPlacement+ ySep*positionInColumn)
@@ -100,6 +101,7 @@ placeFoundationCard :: String -> String -> Int -> IO ()
 placeFoundationCard id cssClass hindex =
         let vindex = 0
         in placeCard_ffi (toJSStr id) 
+                  (toJSStr id)
                   (toJSStr cssClass)
                   (xFoundationPlacement+ xSep*hindex) 
                   (yFoundationPlacement+ ySep*vindex)
@@ -110,19 +112,15 @@ placeDeckCard id cssClass =
         let vindex = 0
             hindex = 0
         in placeCard_ffi (toJSStr id) 
+                  (toJSStr id)
                   (toJSStr cssClass)
                   (xDeckPlacement+ xSep*hindex) 
                   (yDeckPlacement+ ySep*vindex)
 
 -- place card with id, class, on reserves
-placeReservesCard :: String -> String -> IO ()
-placeReservesCard id cssClass =
-        let vindex = 0
-            hindex = 0
-        in placeCard_ffi (toJSStr id) 
-                  (toJSStr cssClass)
-                  (xReservesPlacement+ xSep*hindex) 
-                  (yReservesPlacement+ ySep*vindex)
+placeReservesCard :: String -> String -> String -> IO ()
+placeReservesCard id name cssClass =
+    placeCard_ffi (toJSStr id) (toJSStr name) (toJSStr cssClass) xReservesPlacement yReservesPlacement
 
 -- display blanks to indicate where cards go if column is empty.
 showEmptyColumn :: Int -> IO ()
@@ -161,8 +159,8 @@ showDeck deck = do
 
 showReserves :: [Card] -> IO ()
 showReserves deck = do
-    placeReservesCard "base_only" "emptyReserves" 
-    sequence_ $ map (\_ -> placeReservesCard "back" "hiddenReserves") deck
+    placeReservesCard "base_only" "base_only" "emptyReserves" 
+    sequence_ $ map (\card -> placeReservesCard "back" (svgString card) "hiddenReserves") deck
 
 showGame :: Game -> IO ()
 showGame game@(Game foundations columns deck reserves)  =  do
@@ -201,10 +199,25 @@ alignFoundation hindex foundation =
     sequence_ (map pc $ (reverse foundation))
             where pc card = alignFoundationCard (svgString card) ("foundation"++show hindex) hindex 
 
+alignDeck :: [Card] -> IO ()
+alignDeck deck = do
+    placeDeckCard "base_only" "emptyDeck" 
+
+-- align card in reserves with id, css 
+alignReservesCard :: String -> String -> IO ()
+alignReservesCard id cssClass =
+    alignCard_ffi (toJSStr id) (toJSStr cssClass) xReservesPlacement yReservesPlacement
+
+alignReserves :: [Card] -> IO ()
+alignReserves deck = do
+    sequence_ $ map (\card -> alignReservesCard (svgString card) "hiddenReserves") deck
+
 alignGame :: Game -> IO ()
 alignGame game@(Game foundations columns deck reserves)  = do
         sequence_ $ map (uncurry alignColumn) $ zip [0..] columns
         sequence_ $ map (uncurry alignFoundation) $ zip [0..] foundations
+        -- alignDeck deck
+        alignReserves reserves
          
 setCallbacks :: Game -> Maybe String -> IO ()
 setCallbacks game topClass = do
@@ -249,6 +262,7 @@ onDragEnd game@(Game fg cg _ _) topClass jsCardId jsClassName x y =
                    alignGame newGame
                    deleteColumn validSourceColumnIndex
                    showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex
+
                    setCallbacks newGame $ Just newTopClass
               else -- not a valid move for some reason
                    alignGame game

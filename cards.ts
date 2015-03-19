@@ -76,7 +76,7 @@ function setMouseoverCallback_ffi(cb) {
 function mouseover(d,i) {
 
     // additional select("g") because card is nested below event object
-    var draggedId:string = d3.select(this).select("g").attr("id");
+    var draggedId = d3.select(this).select("g").attr("id");
 
     var coordinates = d3.mouse(this.parentNode);
     var xCoord = coordinates[0];
@@ -99,6 +99,11 @@ function getBaseOffset(card:HTMLElement)
 
 
 function alignCard_ffi(name:string, classname:string, x:number, y:number) {
+// console.log( "name =" + name);
+//   var id = 
+//         d3.select('body svg g[data-name="' +name +'"]').select("g").attr("id"); 
+//   console.log(id);
+
     var card = document.getElementById(name);
 
     var baseOffset = getBaseOffset(card);
@@ -121,8 +126,8 @@ function alignCard_ffi(name:string, classname:string, x:number, y:number) {
         ;
 }
 
-function placeCard_ffi(name:string, classname:string, x:number, y:number) {
-    var card = document.getElementById(name);
+function placeCard_ffi(id:string, name:string, classname:string, x:number, y:number) {
+    var card = document.getElementById(id);
     var baseOffset = getBaseOffset(card);
 
     d3.select("body svg")
@@ -132,7 +137,7 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
                }
              )
         .attr("data-name", function(d, i){ 
-                   return name; 
+                   return id; 
                }
              )
         .attr("class", function(d, i){ 

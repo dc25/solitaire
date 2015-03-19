@@ -245,49 +245,55 @@ onMouseover game@(Game _ cg _ _) topClass jsCardId jsClass x y =
                    setCallbacks game $ Just newTopClass
                else
                    return ()
+-- game@(Game _ cg _ _) 
+
+moveFromColumnToColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> Int -> IO ()
+moveFromColumnToColumn game@(Game _ cg _ _) topClass cardId cls x y sourceColumnIndex =
+   let destColumnIndex  = min 6 $ (x - xColumnPlacement) `div` xSep
+       isValidMove = (last.visible $ cg !! sourceColumnIndex) `goesOnColumn` (cg !! destColumnIndex)
+
+   in if isValidMove then do
+           let newGame@(Game _ ncg _ _) = fromColumnToColumn game sourceColumnIndex destColumnIndex
+               newTopClass = (".visibleColumn" ++ show sourceColumnIndex)
+           alignColumn destColumnIndex $ ncg !! destColumnIndex
+           deleteColumn sourceColumnIndex
+           showColumn sourceColumnIndex $ ncg !! sourceColumnIndex
+           setCallbacks newGame $ Just newTopClass
+      else -- not a valid move for some reason
+           alignColumn sourceColumnIndex $ cg !! sourceColumnIndex
+
+moveFromColumnToFoundation :: Game -> Maybe String -> String -> String -> Int -> Int -> Int -> IO ()
+moveFromColumnToFoundation game@(Game fg cg _ _)  topClass cardId cls x y sourceColumnIndex =
+    let destFoundationIndex = min 3 $ (x - xFoundationPlacement) `div` xSep
+        isValidMove = (last.visible $ cg !! sourceColumnIndex) `goesOnFoundation` (fg !! destFoundationIndex)
+    in if isValidMove then do
+            let newGame@(Game nfg ncg _ _) = fromColumnToFoundation game sourceColumnIndex destFoundationIndex
+            alignFoundation destFoundationIndex $ nfg !! destFoundationIndex
+            deleteColumn sourceColumnIndex
+            showColumn sourceColumnIndex $ ncg !! sourceColumnIndex
+            setCallbacks newGame $ topClass -- nothing new on table - no need to change topClass 
+       else -- not a valid move for some reason
+            alignColumn sourceColumnIndex $ cg !! sourceColumnIndex
+
+moveFromColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
+moveFromColumn game@(Game _ cg _ _) topClass cardId cls x y 
+    | draggedToColumn = moveFromColumnToColumn game topClass cardId cls x y sourceColumnIndex
+    | draggedToFoundation  = moveFromColumnToFoundation game topClass cardId cls x y sourceColumnIndex
+    | otherwise = alignColumn sourceColumnIndex $ cg !! sourceColumnIndex
+    where
+        sourceColumnIndex = read (fromJust (stripPrefix "visibleColumn" cls)) :: Int
+        draggedToColumn = (y >= yColumnPlacement && x >= xColumnPlacement)
+        draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
 
 onDragEnd :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
-onDragEnd game@(Game fg cg _ _) topClass jsCardId jsClass x y = 
-    let draggedToColumn = (y >= yColumnPlacement && x >= xColumnPlacement)
-    in if draggedToColumn then 
-           let sourceColumnIndex = columnIndexFromJSCardId jsCardId game
-               destColumnIndex  = min 6 $ (x - xColumnPlacement) `div` xSep
-               isValidMove = 
-                   case sourceColumnIndex of 
-                      Nothing -> False
-                      Just sourceColumnIndex' -> (last.visible $ cg !! sourceColumnIndex') `goesOnColumn` (cg !! destColumnIndex)
-               validSourceColumnIndex = fromMaybe 0 sourceColumnIndex 
+onDragEnd game topClass jsCardId jsClass x y 
+    | "visibleColumn" `isPrefixOf` cls = moveFromColumn game topClass cardId cls x y 
+    | otherwise = do 
+          let errorMsg = "In onDragEnd - Unhandled id/class: " ++ (fromJSStr jsCardId) ++ "/" ++ (fromJSStr jsClass) 
+          consoleLog_ffi $ toJSStr errorMsg
+    where cls = fromJSStr jsClass
+          cardId  = fromJSStr jsCardId
 
-           in if isValidMove then do
-                   let newGame@(Game _ ncg _ _) = fromColumnToColumn game validSourceColumnIndex destColumnIndex
-                       newTopClass = (".visibleColumn" ++ show validSourceColumnIndex)
-                   alignColumn destColumnIndex $ ncg !! destColumnIndex
-                   deleteColumn validSourceColumnIndex
-                   showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex
-                   setCallbacks newGame $ Just newTopClass
-              else -- not a valid move for some reason
-                   alignColumn validSourceColumnIndex $ cg !! validSourceColumnIndex
-       else -- drag destination was not on a column.  Was it on a foundation?
-           let draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
-           in if draggedToFoundation then 
-                  let sourceColumnIndex = columnIndexFromJSCardId jsCardId game
-                      destFoundationIndex  = min 3 $ (x - xFoundationPlacement) `div` xSep
-                      isValidMove = 
-                          case sourceColumnIndex of 
-                             Nothing -> False
-                             Just sourceColumnIndex' -> (last.visible $ cg !! sourceColumnIndex') `goesOnFoundation` (fg !! destFoundationIndex)
-                      validSourceColumnIndex = fromMaybe 0 sourceColumnIndex 
-
-                  in if isValidMove then do
-                          let newGame@(Game nfg ncg _ _) = fromColumnToFoundation game validSourceColumnIndex destFoundationIndex
-                          alignFoundation destFoundationIndex $ nfg !! destFoundationIndex
-                          deleteColumn validSourceColumnIndex
-                          showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex
-                          setCallbacks newGame $ topClass -- nothing new on table - no need to change topClass 
-                     else -- not a valid move for some reason
-                          alignColumn validSourceColumnIndex $ cg !! validSourceColumnIndex
-              else -- drag destination was not on a column or foundation.  
-                  alignGame game
 
 
 loadCallback = do

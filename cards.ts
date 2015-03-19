@@ -21,6 +21,10 @@ var drag = d3.behavior.drag()
 
 function dragstart() { 
     d3.event.sourceEvent.stopPropagation(); 
+
+    // Turn off mouseover across the board while dragging
+    var selectArg = 'g[class*="visible"]';
+    d3.selectAll(selectArg).on("mouseover", null)
 }
 
 // Define drag beavior
@@ -42,6 +46,10 @@ function setDragEndCallback_ffi(cb) {
 
 // Define dragend behavior - just call back into haskell.
 function dragend(d) {
+
+    // Turn on mouseover for all visible objects when done dragging
+    var selectArg = 'g[class*="visible"]';
+    d3.selectAll(selectArg).on("mouseover", mouseover)
 
     // additional select("g") because card is nested below dragged object
     var draggedId:string = d3.select(this).select("g").attr("id");

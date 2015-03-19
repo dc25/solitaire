@@ -99,10 +99,6 @@ function getBaseOffset(card:HTMLElement)
 
 
 function alignCard_ffi(name:string, classname:string, x:number, y:number) {
-// console.log( "name =" + name);
-//   var id = 
-//         d3.select('body svg g[data-name="' +name +'"]').select("g").attr("id"); 
-//   console.log(id);
 
     var card = document.getElementById(name);
 

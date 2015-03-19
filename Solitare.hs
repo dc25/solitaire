@@ -57,7 +57,10 @@ fromSvgString svg = let rankAndSuit = span (/='_') svg
 xSep = 100
 ySep = 30
 xColumnPlacement = 200
-yColumnPlacement = 100
+yColumnPlacement = 200
+
+xFoundationPlacement = xColumnPlacement + 3 * xSep
+yFoundationPlacement = yColumnPlacement - 150
 
 deleteHiddenColumn :: Int -> IO ()
 deleteHiddenColumn hindex = 
@@ -165,10 +168,11 @@ onDragEnd game@(Game _ cg _ _) topClass jsCardId x y =
 
            in if isValidMove then do
                    let newGame@(Game _ ncg _ _) = fromColumnToColumn game validSourceColumnIndex destColumnIndex
+                   let newTopClass = (".visibleColumn" ++ show validSourceColumnIndex)
                    alignGame newGame
                    deleteColumn validSourceColumnIndex
                    showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex
-                   setCallbacks newGame topClass
+                   setCallbacks newGame $ Just newTopClass
               else -- not a valid move for some reason
                    alignGame game
        else -- drag destination was not on a column

@@ -58,6 +58,7 @@ fromSvgString svg =
                              Nothing -> Nothing
                              Just suit -> Just $ Card (toEnum rank :: Rank) (toEnum suit :: Suit)
 
+-- Parameters controlling game layout 
 xSep = 90
 ySep = 20
 xColumnPlacement = 40
@@ -65,6 +66,12 @@ yColumnPlacement = 160
 
 xFoundationPlacement = xColumnPlacement + 3*xSep
 yFoundationPlacement = 20
+
+xReservesPlacement = xColumnPlacement + xSep `div` 2
+yReservesPlacement = yFoundationPlacement
+
+xDeckPlacement = xReservesPlacement + xSep 
+yDeckPlacement = yFoundationPlacement
 
 deleteHiddenColumn :: Int -> IO ()
 deleteHiddenColumn hindex = 
@@ -90,12 +97,32 @@ placeTableCard id cssClass columnIndex positionInColumn =
 
 -- place card with id, column on foundation
 placeFoundationCard :: String -> String -> Int -> IO ()
-placeFoundationCard id cssClass columnIndex =
-        let positionInColumn = 0
+placeFoundationCard id cssClass hindex =
+        let vindex = 0
         in placeCard_ffi (toJSStr id) 
                   (toJSStr cssClass)
-                  (xFoundationPlacement+ xSep*columnIndex) 
-                  (yFoundationPlacement+ ySep*positionInColumn)
+                  (xFoundationPlacement+ xSep*hindex) 
+                  (yFoundationPlacement+ ySep*vindex)
+
+-- place card with id, class, on deck
+placeDeckCard :: String -> String -> IO ()
+placeDeckCard id cssClass =
+        let vindex = 0
+            hindex = 0
+        in placeCard_ffi (toJSStr id) 
+                  (toJSStr cssClass)
+                  (xDeckPlacement+ xSep*hindex) 
+                  (yDeckPlacement+ ySep*vindex)
+
+-- place card with id, class, on reserves
+placeReservesCard :: String -> String -> IO ()
+placeReservesCard id cssClass =
+        let vindex = 0
+            hindex = 0
+        in placeCard_ffi (toJSStr id) 
+                  (toJSStr cssClass)
+                  (xReservesPlacement+ xSep*hindex) 
+                  (yReservesPlacement+ ySep*vindex)
 
 -- display blanks to indicate where cards go if column is empty.
 showEmptyColumn :: Int -> IO ()
@@ -128,10 +155,21 @@ showFoundation :: Int -> [Card] -> IO ()
 showFoundation hindex foundation = do
     placeFoundationCard "base_only" ("emptyFoundation"++show hindex) hindex 
 
+showDeck :: [Card] -> IO ()
+showDeck deck = do
+    placeDeckCard "base_only" "emptyDeck" 
+
+showReserves :: [Card] -> IO ()
+showReserves deck = do
+    placeReservesCard "base_only" "emptyReserves" 
+    sequence_ $ map (\_ -> placeReservesCard "back" "hiddenReserves") deck
+
 showGame :: Game -> IO ()
 showGame game@(Game foundations columns deck reserves)  =  do
     sequence_ $ map (uncurry showColumn) (zip [0..] columns)
     sequence_ $ map (uncurry showFoundation) (zip [0..] foundations)
+    showDeck deck
+    showReserves reserves
          
 -- align card with id, css class, column, depth in column
 alignTableCard :: String -> String -> Int -> Int -> IO ()
@@ -148,7 +186,7 @@ alignColumn hindex (Column hidden visible) =
     sequence_ (map pc $ zip [length hidden..] (reverse visible))
             where pc (vindex,card) = alignTableCard (svgString card) ("visibleColumn"++show hindex) hindex vindex
 
--- align card with id, css class, column
+-- align card in foundation with id, css class, column
 alignFoundationCard :: String -> String -> Int -> IO ()
 alignFoundationCard id cssClass foundationIndex =
     let positionInFoundation = 0 

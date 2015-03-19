@@ -140,7 +140,7 @@ function placeCard_ffi(id:string, name:string, classname:string, x:number, y:num
                }
              )
         .attr("data-name", function(d, i){ 
-                   return id; 
+                   return name; 
                }
              )
         .attr("class", function(d, i){ 

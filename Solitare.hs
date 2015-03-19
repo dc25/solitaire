@@ -59,6 +59,20 @@ ySep = 30
 xColumnPlacement = 200
 yColumnPlacement = 100
 
+deleteHiddenColumn :: Int -> IO ()
+deleteHiddenColumn hindex = 
+    deleteBySelectionString_ffi $ toJSStr (".hiddenColumn"++show hindex)
+
+deleteVisibleColumn :: Int -> IO ()
+deleteVisibleColumn hindex = 
+    deleteBySelectionString_ffi $ toJSStr (".visibleColumn"++show hindex)
+
+deleteColumn :: Int -> IO ()
+deleteColumn hindex = do
+    deleteHiddenColumn hindex 
+    deleteVisibleColumn hindex 
+
+
 -- place card with id, css class, column, depth in column
 placeTableCard :: String -> String -> Int -> Int -> IO ()
 placeTableCard id cssClass columnIndex positionInColumn =
@@ -150,8 +164,10 @@ onDragEnd game@(Game _ cg _ _) topClass jsCardId x y =
                validSourceColumnIndex = fromMaybe 0 sourceColumnIndex 
 
            in if isValidMove then do
-                   let newGame = fromColumnToColumn game validSourceColumnIndex destColumnIndex
+                   let newGame@(Game _ ncg _ _) = fromColumnToColumn game validSourceColumnIndex destColumnIndex
                    alignGame newGame
+                   deleteColumn validSourceColumnIndex
+                   showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex
                    setCallbacks newGame topClass
               else -- not a valid move for some reason
                    alignGame game

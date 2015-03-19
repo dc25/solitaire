@@ -52,14 +52,16 @@ function dragend(d) {
     var selectArg = 'g[class*="visible"]';
     d3.selectAll(selectArg).on("mouseover", mouseover)
 
-    // additional select("g") because card is nested below dragged object
-    var draggedId:string = d3.select(this).select("g").attr("id");
+    var dragged = d3.select(this);
+
+    var draggedClassName = dragged.attr("class");
+    var draggedId = dragged.select("g").attr("id"); // select("g") because card is nested below dragged object
 
     var coordinates = d3.mouse(this.parentNode);
     var xCoord = coordinates[0];
     var yCoord = coordinates[1];
     
-    B(A(dragEndCallback, [[0,draggedId], [0,xCoord], [0,yCoord], 0]));
+    B(A(dragEndCallback, [ [0,draggedId], [0,draggedClassName], [0,xCoord], [0,yCoord], 0]));
 }
 
 // Provide for callback into haskell when mouse passes over object
@@ -151,11 +153,13 @@ function placeCard_ffi(name:string, classname:string, x:number, y:number) {
 
     // There must be a better way of enabling drag 
     // for new cards in a visble column.
-    if (classname.indexOf("visibleColumn") > -1)
+    if (    (classname.indexOf("visibleColumn") > -1)
+         || (classname == "hiddenReserves")  )
     {
         var selectArg = "g[class=" + classname + "]";
         d3.selectAll(selectArg).call(drag);
     }
+
 }
 
 function deleteBySelectionString_ffi(cssSelection:string) {

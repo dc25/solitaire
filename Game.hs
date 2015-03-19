@@ -28,27 +28,6 @@ data Game = Game
          [Card]    -- deck
          [Card]    -- reserves
 
-instance Show Game where
-    show (Game fg cg dg rg) = 
-          let emptySpace = "__"
-              hiddenCard = "??"
-              noCard =     "  "
-
-              flines = unwords $ map (\f -> if null f then emptySpace else show $ head f) fg
-              clines = unwords $ map (\f -> if null $ concealed f then emptySpace else hiddenCard) cg
-
-              vlines = toVisibleLines $ map (reverse.visible) cg where
-                   toVisibleLines [[],[],[],[],[],[],[]] = []
-                   toVisibleLines vg =
-                         unwords (map (\f -> if null f then noCard else show $ head f) vg) 
-                       : toVisibleLines (map (\f -> if null f then [] else tail f) vg)
-
-              dlines = unwords [ if null rg then emptySpace else hiddenCard, 
-                               if null dg then emptySpace else show $ head dg ]
-
-              lines' = flines:clines:vlines ++ [dlines]
-          in unlines lines'
-
 gameOver :: Game -> Bool
 gameOver (Game _ cg dg rg) =    
                    all null (map visible cg)

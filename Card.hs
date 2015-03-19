@@ -5,25 +5,9 @@ module Card (
     cardColor
 ) where
 
-import Data.Char
-
 data Rank = Ace | Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King deriving  (Eq, Ord, Enum, Bounded, Show, Read)
 
-rankLetter :: Rank -> Char
-rankLetter Ace =   'A'
-rankLetter Ten =   'T'
-rankLetter Jack =  'J'
-rankLetter Queen = 'Q'
-rankLetter King =  'K'
-rankLetter r = chr ((fromEnum r - fromEnum Two) + ord '2')
-
 data Suit = Hearts | Diamonds | Spades | Clubs deriving  (Eq, Ord, Enum, Bounded, Show, Read)
-
-suitLetter :: Suit -> Char
-suitLetter Hearts =   'H'
-suitLetter Diamonds = 'D'
-suitLetter Spades =   'S'
-suitLetter Clubs =    'C'
 
 data Color = Red | Black deriving  (Eq, Ord, Enum, Bounded, Show, Read)
 
@@ -40,7 +24,4 @@ data Card = Card {
 
 cardColor:: Card -> Color
 cardColor (Card _ suit') = suitColor suit'
-
-instance Show Card where
-    show (Card rank' suit') = [rankLetter rank', suitLetter suit']
 

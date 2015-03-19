@@ -9,7 +9,12 @@ var B:any;
 
 // For debugging.
 function showAlert_ffi(msg:string) {
-        alert(msg);
+    alert(msg);
+}
+
+// For debugging.
+function consoleLog_ffi(msg:string) {
+    console.log(msg);
 }
 
 // Global scale to apply to all cards displayed

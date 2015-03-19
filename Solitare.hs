@@ -15,11 +15,13 @@ import Card
 import Game
 
 -- javascript functionality
+foreign import ccall showAlert_ffi :: JSString -> IO ()
+foreign import ccall consoleLog_ffi :: JSString -> IO ()
+
 foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
 foreign import ccall placeCard_ffi :: JSString -> JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall alignCard_ffi :: JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall deleteBySelectionString_ffi :: JSString -> IO ()
-foreign import ccall showAlert_ffi :: JSString -> IO ()
 foreign import ccall setMouseoverCallback_ffi :: Ptr (JSString -> JSString -> Int -> Int -> IO ()) -> IO ()
 foreign import ccall setDragEndCallback_ffi :: Ptr (JSString -> JSString -> Int -> Int -> IO ()) -> IO ()
 
@@ -259,6 +261,7 @@ onDragEnd game@(Game fg cg _ _) topClass jsCardId jsClass x y =
            in if isValidMove then do
                    let newGame@(Game _ ncg _ _) = fromColumnToColumn game validSourceColumnIndex destColumnIndex
                        newTopClass = (".visibleColumn" ++ show validSourceColumnIndex)
+                   consoleLog_ffi jsClass
                    alignColumn destColumnIndex $ ncg !! destColumnIndex
                    deleteColumn validSourceColumnIndex
                    showColumn validSourceColumnIndex $ ncg !! validSourceColumnIndex

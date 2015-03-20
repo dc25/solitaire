@@ -218,7 +218,7 @@ onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y =
 
 moveFromColumnToColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromColumnToColumn game@(Game _ cg _ _) topClass cardId cls x y =
-   let destColumnIndex  = min 6 $ (x - xColumnPlacement) `div` xSep
+   let destColumnIndex  = min (length cg - 1) $ (x - xColumnPlacement) `div` xSep
        isValidMove = (last.visible $ cg !! sourceColumnIndex) `goesOnColumn` (cg !! destColumnIndex)
        sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
 
@@ -234,7 +234,7 @@ moveFromColumnToColumn game@(Game _ cg _ _) topClass cardId cls x y =
 
 moveFromColumnToFoundation :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromColumnToFoundation game@(Game fg cg _ _)  topClass cardId cls x y =
-    let destFoundationIndex = min 3 $ (x - xFoundationPlacement) `div` xSep
+    let destFoundationIndex = min (length fg - 1) $ (x - xFoundationPlacement) `div` xSep
         isValidMove = (head.visible) (cg !! sourceColumnIndex) `goesOnFoundation` (fg !! destFoundationIndex)
         sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
     in if isValidMove then do

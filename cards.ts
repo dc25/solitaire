@@ -126,10 +126,11 @@ function alignCard_ffi(name:string, classname:string, x:number, y:number) {
     // http://stackoverflow.com/questions/10337640/how-to-access-the-dom-element-that-correlates-to-a-d3-svg-object
     // for telling how to use node() to retrieve DOM element from selection.
 
-    var card = d3.select('body svg g[data-name="' +name +'"]').node();
+    var cardSelect = d3.select('body svg g[data-name="' +name +'"]');
+    var card = cardSelect.node();
     var baseOffset = getBaseOffset(card);  
 
-    d3.select('body svg g[data-name="' +name +'"]')
+    cardSelect
         .data([{xtranslate:(0      + x/cardScale - baseOffset.x),
                 ytranslate:(235.27 + y/cardScale - baseOffset.y)
                 }]

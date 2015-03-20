@@ -111,21 +111,12 @@ deleteColumn hindex = do
 -- place card with id, css class, column, depth in column
 placeTableCard :: String -> String -> String -> Int -> Int -> IO ()
 placeTableCard id name cssClass columnIndex positionInColumn =
-        placeCard_ffi (toJSStr id) 
-                  (toJSStr name)
-                  (toJSStr cssClass)
-                  (xColumnPlacement+ xSep*columnIndex) 
-                  (yColumnPlacement+ ySep*positionInColumn)
+    placeCard_ffi (toJSStr id) (toJSStr name) (toJSStr cssClass) (xColumnPlacement+ xSep*columnIndex) (yColumnPlacement+ ySep*positionInColumn)
 
 -- place card with id, column on foundation
 placeFoundationCard :: String -> String -> String -> Int -> IO ()
 placeFoundationCard id name cssClass hindex =
-        let vindex = 0
-        in placeCard_ffi (toJSStr id) 
-                  (toJSStr name)
-                  (toJSStr cssClass)
-                  (xFoundationPlacement+ xSep*hindex) 
-                  (yFoundationPlacement+ ySep*vindex)
+    placeCard_ffi (toJSStr id) (toJSStr name) (toJSStr cssClass) (xFoundationPlacement+ xSep*hindex) (yFoundationPlacement)
 
 -- place card with id, class, on deck
 placeDeckCard :: String -> String -> String -> IO ()
@@ -147,14 +138,14 @@ placeEmptyColumn hindex =
 placeHiddenColumn :: Int -> Column -> IO ()
 placeHiddenColumn hindex (Column hidden _) = 
     zipWithM_ ph [0..] hidden
-            where ph vindex card = placeTableCard "back" (svgString card) (hiddenColumnPrefix++show hindex) hindex vindex
+        where ph vindex card = placeTableCard "back" (svgString card) (hiddenColumnPrefix++show hindex) hindex vindex
 
 -- assign vindex indicating depth in column to each visible card in column
 -- display card in column position specified by (hindex,vindex)
 placeVisibleColumn :: Int -> Column -> IO ()
 placeVisibleColumn hindex (Column hidden visible) = 
     zipWithM_ pc [length hidden..] (reverse visible)
-            where pc vindex card = placeTableCard (svgString card) (svgString card) (visibleColumnPrefix++show hindex) hindex vindex
+        where pc vindex card = placeTableCard (svgString card) (svgString card) (visibleColumnPrefix++show hindex) hindex vindex
 
 -- assign vindex indicating depth in column to each card in column
 -- display card in column position specified by (hindex,vindex)
@@ -189,8 +180,8 @@ placeGame game@(Game foundations columns deck reserves)  =  do
          
 setCallbacks :: Game -> Maybe String -> IO ()
 setCallbacks game topClass = do
-        setDragEndCallback_ffi $ toPtr (onDragEnd game topClass)
-        setMouseoverCallback_ffi $ toPtr (onMouseover game topClass)
+    setDragEndCallback_ffi $ toPtr (onDragEnd game topClass)
+    setMouseoverCallback_ffi $ toPtr (onMouseover game topClass)
 
 onMouseover :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
 onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y = 

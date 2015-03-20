@@ -169,8 +169,8 @@ function placeCard_ffi(id:string, name:string, classname:string, x:number, y:num
     }
 }
 
-function deleteBySelectionString_ffi(cssSelection:string) {
-    d3.selectAll(cssSelection).remove()
+function deleteByClass_ffi(cssSelection:string) {
+    d3.selectAll("." + cssSelection).remove()
 }
 
 function loadCards_ffi(cb) {

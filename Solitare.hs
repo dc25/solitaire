@@ -20,7 +20,7 @@ foreign import ccall consoleLog_ffi :: JSString -> IO ()
 
 foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
 foreign import ccall placeCard_ffi :: JSString -> JSString -> JSString -> Int -> Int -> IO ()
-foreign import ccall deleteBySelectionString_ffi :: JSString -> IO ()
+foreign import ccall deleteByClass_ffi :: JSString -> IO ()
 foreign import ccall setMouseoverCallback_ffi :: Ptr (JSString -> JSString -> Int -> Int -> IO ()) -> IO ()
 foreign import ccall setDragEndCallback_ffi :: Ptr (JSString -> JSString -> Int -> Int -> IO ()) -> IO ()
 
@@ -76,21 +76,21 @@ yDeckPlacement = yFoundationPlacement
 
 deleteHiddenColumn :: Int -> IO ()
 deleteHiddenColumn hindex = 
-    deleteBySelectionString_ffi $ toJSStr (".hiddenColumn"++show hindex)
+    deleteByClass_ffi $ toJSStr ("hiddenColumn"++show hindex)
 
 deleteVisibleColumn :: Int -> IO ()
 deleteVisibleColumn hindex = 
-    deleteBySelectionString_ffi $ toJSStr (".visibleColumn"++show hindex)
+    deleteByClass_ffi $ toJSStr ("visibleColumn"++show hindex)
 
 deleteDeck :: IO()
 deleteDeck = do
-    deleteBySelectionString_ffi $ toJSStr ".emptyDeck"
-    deleteBySelectionString_ffi $ toJSStr ".solitareDeck"
+    deleteByClass_ffi $ toJSStr "emptyDeck"
+    deleteByClass_ffi $ toJSStr "solitareDeck"
 
 deleteReserves :: IO()
 deleteReserves = do
-    deleteBySelectionString_ffi $ toJSStr ".emptyReserves"
-    deleteBySelectionString_ffi $ toJSStr ".hiddenReserves"
+    deleteByClass_ffi $ toJSStr "emptyReserves"
+    deleteByClass_ffi $ toJSStr "hiddenReserves"
 
 deleteColumn :: Int -> IO ()
 deleteColumn hindex = do
@@ -186,7 +186,7 @@ onMouseover :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO 
 onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y = 
     when (differentTopClass && (isVisCol || isRes || isDeck )) $ 
     do
-        deleteBySelectionString_ffi $ toJSStr ("." ++ newTopClass)
+        deleteByClass_ffi $ toJSStr newTopClass
         setCallbacks game $ Just newTopClass
         if isVisCol then
             let sourceColumnIndex = read (fromJust (stripPrefix "visibleColumn" cls)) :: Int

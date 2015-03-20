@@ -107,39 +107,24 @@ function mouseover(d,i) {
     B(A(mouseoverCallback, [[0,mousedId], [0,mousedClassName], [0,xCoord], [0,yCoord], 0]));
 }
 
-function getBaseOffset(card:Element) 
-{
-    // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
-
-    var queryString = 'use[*|href="#base"]';
-    var base = d3.select(card).select(queryString);
-
-    var xOffset = parseInt(base.attr("x"));
-    var yOffset = parseInt(base.attr("y"));
-    return {x:xOffset, y:yOffset};
-}
-
-
 function placeCard_ffi(id:string, name:string, classname:string, x:number, y:number) {
 
     // Thanks to : 
     // http://stackoverflow.com/questions/10337640/how-to-access-the-dom-element-that-correlates-to-a-d3-svg-object
     // for telling how to use node() to retrieve DOM element from selection.
 
+    // Select to see if the card has already been displayed
     var cardSelect = d3.select('body svg g[data-name="' +name +'"]');
 
     var card;
-    var selected = ! cardSelect.empty();
-    if (selected) {
-        card = cardSelect.node();
-    } else {
-        console.log("card not selected: " + name)
-        card = document.getElementById(id);
+    var alreadyDisplayed = ! cardSelect.empty();
+    if (! alreadyDisplayed) {
+        var documentElement = document.getElementById(id);
         cardSelect 
             = d3.select("body svg")
                 .append("g")
                 .each(function(d, i) { 
-                           this.appendChild(card.cloneNode(true)); 
+                           this.appendChild(documentElement.cloneNode(true)); 
                        }
                      )
                 .attr("data-name", function(d, i){ 
@@ -147,11 +132,17 @@ function placeCard_ffi(id:string, name:string, classname:string, x:number, y:num
                        }
                      );
     }
-    var baseOffset = getBaseOffset(card);  
+
+    // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
+    card = cardSelect.node();
+    var base = d3.select(card).select('use[*|href="#base"]');
+
+    var xOffset = parseInt(base.attr("x"));
+    var yOffset = parseInt(base.attr("y"));
 
     cardSelect
-        .data([{xtranslate:(0      + x/cardScale - baseOffset.x),
-                ytranslate:(235.27 + y/cardScale - baseOffset.y)
+        .data([{xtranslate:(0      + x/cardScale - xOffset),
+                ytranslate:(235.27 + y/cardScale - yOffset)
                 }]
              )
         .attr("class", function(d, i){ return classname; });
@@ -161,7 +152,7 @@ function placeCard_ffi(id:string, name:string, classname:string, x:number, y:num
              + "translate (" + d.xtranslate + "," + d.ytranslate + ")" ;
     }
 
-    if (selected) {
+    if (alreadyDisplayed) {
         cardSelect.transition().attr("transform", transformFunction);
     } else {
         cardSelect.attr("transform", transformFunction).on("mouseover", mouseover);

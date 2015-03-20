@@ -74,23 +74,33 @@ yReservesPlacement = yFoundationPlacement
 xDeckPlacement = xReservesPlacement + xSep 
 yDeckPlacement = yFoundationPlacement
 
+hiddenColumnPrefix    = "hiddenColumn"
+visibleColumnPrefix   = "visibleColumn"
+emptyColumnClass      = "emptyColumn"
+emptyDeckClass        = "emptyDeck"
+deckClass             = "solitareDeck"
+emptyReservesClass    = "emptyReserves"
+reservesClass         = "hiddenReserves"
+emptyFoundationClass  = "emptyFoundationClass"
+foundationClassPrefix = "foundation"
+
 deleteHiddenColumn :: Int -> IO ()
 deleteHiddenColumn hindex = 
-    deleteByClass_ffi $ toJSStr ("hiddenColumn"++show hindex)
+    deleteByClass_ffi $ toJSStr (hiddenColumnPrefix++show hindex)
 
 deleteVisibleColumn :: Int -> IO ()
 deleteVisibleColumn hindex = 
-    deleteByClass_ffi $ toJSStr ("visibleColumn"++show hindex)
+    deleteByClass_ffi $ toJSStr (visibleColumnPrefix++show hindex)
 
 deleteDeck :: IO()
 deleteDeck = do
-    deleteByClass_ffi $ toJSStr "emptyDeck"
-    deleteByClass_ffi $ toJSStr "solitareDeck"
+    deleteByClass_ffi $ toJSStr emptyDeckClass
+    deleteByClass_ffi $ toJSStr deckClass
 
 deleteReserves :: IO()
 deleteReserves = do
-    deleteByClass_ffi $ toJSStr "emptyReserves"
-    deleteByClass_ffi $ toJSStr "hiddenReserves"
+    deleteByClass_ffi $ toJSStr emptyReservesClass
+    deleteByClass_ffi $ toJSStr reservesClass
 
 deleteColumn :: Int -> IO ()
 deleteColumn hindex = do
@@ -130,21 +140,21 @@ placeReservesCard id name cssClass =
 -- display blanks to indicate where cards go if column is empty.
 showEmptyColumn :: Int -> IO ()
 showEmptyColumn hindex = 
-    placeTableCard "base_only" ("emptyColumn"++show hindex) "emptyColumn" hindex 0
+    placeTableCard "base_only" (emptyColumnClass++show hindex) emptyColumnClass hindex 0
 
 -- assign vindex indicating depth in column to each hidden card in column
 -- display back of card in column position specified by (hindex,vindex)
 showHiddenColumn :: Int -> Column -> IO ()
 showHiddenColumn hindex (Column hidden _) = 
     zipWithM_ ph [0..] hidden
-            where ph vindex card = placeTableCard "back" (svgString card) ("hiddenColumn"++show hindex) hindex vindex
+            where ph vindex card = placeTableCard "back" (svgString card) (hiddenColumnPrefix++show hindex) hindex vindex
 
 -- assign vindex indicating depth in column to each visible card in column
 -- display card in column position specified by (hindex,vindex)
 showVisibleColumn :: Int -> Column -> IO ()
 showVisibleColumn hindex (Column hidden visible) = 
     zipWithM_ pc [length hidden..] (reverse visible)
-            where pc vindex card = placeTableCard (svgString card) (svgString card) ("visibleColumn"++show hindex) hindex vindex
+            where pc vindex card = placeTableCard (svgString card) (svgString card) (visibleColumnPrefix++show hindex) hindex vindex
 
 -- assign vindex indicating depth in column to each card in column
 -- display card in column position specified by (hindex,vindex)
@@ -156,19 +166,19 @@ showColumn hindex column = do
 
 showFoundation :: Int -> [Card] -> IO ()
 showFoundation hindex foundation = do
-    placeFoundationCard "base_only" ("emptyFoundation"++show hindex) ("emptyFoundation"++show hindex) hindex 
+    placeFoundationCard "base_only" (emptyFoundationClass++show hindex) emptyFoundationClass hindex 
     mapM_ pc $ reverse foundation
-        where pc card = placeFoundationCard (svgString card) (svgString card) ("foundation"++show hindex) hindex 
+        where pc card = placeFoundationCard (svgString card) (svgString card) (foundationClassPrefix++show hindex) hindex 
 
 showDeck :: [Card] -> IO ()
 showDeck deck = do
-    placeDeckCard "base_only" "base_only_deck" "emptyDeck" 
-    mapM_ (\card -> placeDeckCard (svgString card) (svgString card) "solitareDeck") $ reverse deck
+    placeDeckCard "base_only" "base_only_deck" emptyDeckClass
+    mapM_ (\card -> placeDeckCard (svgString card) (svgString card) deckClass) $ reverse deck
 
 showReserves :: [Card] -> IO ()
 showReserves deck = do
-    placeReservesCard "base_only" "base_only_reserves" "emptyReserves" 
-    mapM_ (\card -> placeReservesCard "back" (svgString card) "hiddenReserves") deck
+    placeReservesCard "base_only" "base_only_reserves" emptyReservesClass 
+    mapM_ (\card -> placeReservesCard "back" (svgString card) reservesClass) deck
 
 showGame :: Game -> IO ()
 showGame game@(Game foundations columns deck reserves)  =  do
@@ -189,7 +199,7 @@ onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y =
         deleteByClass_ffi $ toJSStr newTopClass
         setCallbacks game $ Just newTopClass
         if isVisCol then
-            let sourceColumnIndex = read (fromJust (stripPrefix "visibleColumn" cls)) :: Int
+            let sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
             in showVisibleColumn sourceColumnIndex (cg !! sourceColumnIndex)
         else if isRes then
             showReserves rg
@@ -200,9 +210,9 @@ onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y =
             in consoleLog_ffi $ toJSStr errorMsg
     where
         cls = fromJSStr jsClass
-        isVisCol = "visibleColumn" `isPrefixOf` cls 
-        isRes = "hiddenReserves" == cls 
-        isDeck = "solitareDeck" == cls 
+        isVisCol = visibleColumnPrefix `isPrefixOf` cls 
+        isRes = reservesClass == cls 
+        isDeck = deckClass == cls 
         newTopClass = fromJSStr jsClass
         differentTopClass = Just newTopClass /= topClass
 
@@ -240,7 +250,7 @@ moveFromColumn game@(Game _ cg _ _) topClass cardId cls x y
     | draggedToFoundation  = moveFromColumnToFoundation game topClass cardId cls x y sourceColumnIndex
     | otherwise = showColumn sourceColumnIndex $ cg !! sourceColumnIndex
     where
-        sourceColumnIndex = read (fromJust (stripPrefix "visibleColumn" cls)) :: Int
+        sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
         draggedToColumn = y >= yColumnPlacement && x >= xColumnPlacement
         draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
 
@@ -304,9 +314,9 @@ moveFromDeck game@(Game _ cg dg _) topClass cardId cls x y
 
 onDragEnd :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
 onDragEnd game topClass jsCardId jsClass x y 
-    | "visibleColumn" `isPrefixOf` cls = moveFromColumn game topClass cardId cls x y 
-    | "hiddenReserves" == cls = moveFromReserves game topClass cardId cls x y 
-    | "solitareDeck" == cls = moveFromDeck game topClass cardId cls x y 
+    | visibleColumnPrefix `isPrefixOf` cls = moveFromColumn game topClass cardId cls x y 
+    | reservesClass == cls = moveFromReserves game topClass cardId cls x y 
+    | deckClass == cls = moveFromDeck game topClass cardId cls x y 
     | otherwise = do 
           let errorMsg = "In onDragEnd - Unhandled id/class: " ++ fromJSStr jsCardId ++ "/" ++ fromJSStr jsClass 
           consoleLog_ffi $ toJSStr errorMsg

@@ -28,8 +28,16 @@ var drag = d3.behavior.drag()
 function dragstart() { 
     d3.event.sourceEvent.stopPropagation(); 
 
+    var selectArg;
+
     // Turn off mouseover across the board while dragging
-    var selectArg = 'g[class*="visible"]';
+    selectArg = 'g[class*="visible"]';
+    d3.selectAll(selectArg).on("mouseover", null)
+
+    selectArg = 'g[class="solitareDeck"]';
+    d3.selectAll(selectArg).on("mouseover", null)
+
+    selectArg = 'g[class="hiddenReserves"]';
     d3.selectAll(selectArg).on("mouseover", null)
 }
 
@@ -53,8 +61,15 @@ function setDragEndCallback_ffi(cb) {
 // Define dragend behavior - just call back into haskell.
 function dragend(d) {
 
+    var selectArg;
     // Turn on mouseover for all visible objects when done dragging
-    var selectArg = 'g[class*="visible"]';
+    selectArg = 'g[class*="visible"]';
+    d3.selectAll(selectArg).on("mouseover", mouseover)
+
+    selectArg = 'g[class="solitareDeck"]';
+    d3.selectAll(selectArg).on("mouseover", mouseover)
+
+    selectArg = 'g[class="hiddenReserves"]';
     d3.selectAll(selectArg).on("mouseover", mouseover)
 
     var dragged = d3.select(this);

@@ -165,7 +165,8 @@ function placeCard_ffi(id:string, name:string, classname:string, x:number, y:num
     // There must be a better way of enabling drag 
     // for new cards in a visble column.
     if (    (classname.indexOf("visibleColumn") > -1)
-         || (classname == "hiddenReserves")  )
+         || (classname == "hiddenReserves")  
+         || (classname == "solitareDeck")  )
     {
         var selectArg = "g[class=" + classname + "]";
         d3.selectAll(selectArg).call(drag);

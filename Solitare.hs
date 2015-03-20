@@ -15,7 +15,7 @@ import Card
 import Game
 
 -- javascript functionality
-foreign import ccall showAlert_ffi :: JSString -> IO ()
+foreign import ccall placeAlert_ffi :: JSString -> IO ()
 foreign import ccall consoleLog_ffi :: JSString -> IO ()
 
 foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
@@ -138,54 +138,54 @@ placeReservesCard id name cssClass =
     placeCard_ffi (toJSStr id) (toJSStr name) (toJSStr cssClass) xReservesPlacement yReservesPlacement
 
 -- display blanks to indicate where cards go if column is empty.
-showEmptyColumn :: Int -> IO ()
-showEmptyColumn hindex = 
+placeEmptyColumn :: Int -> IO ()
+placeEmptyColumn hindex = 
     placeTableCard "base_only" (emptyColumnClass++show hindex) emptyColumnClass hindex 0
 
 -- assign vindex indicating depth in column to each hidden card in column
 -- display back of card in column position specified by (hindex,vindex)
-showHiddenColumn :: Int -> Column -> IO ()
-showHiddenColumn hindex (Column hidden _) = 
+placeHiddenColumn :: Int -> Column -> IO ()
+placeHiddenColumn hindex (Column hidden _) = 
     zipWithM_ ph [0..] hidden
             where ph vindex card = placeTableCard "back" (svgString card) (hiddenColumnPrefix++show hindex) hindex vindex
 
 -- assign vindex indicating depth in column to each visible card in column
 -- display card in column position specified by (hindex,vindex)
-showVisibleColumn :: Int -> Column -> IO ()
-showVisibleColumn hindex (Column hidden visible) = 
+placeVisibleColumn :: Int -> Column -> IO ()
+placeVisibleColumn hindex (Column hidden visible) = 
     zipWithM_ pc [length hidden..] (reverse visible)
             where pc vindex card = placeTableCard (svgString card) (svgString card) (visibleColumnPrefix++show hindex) hindex vindex
 
 -- assign vindex indicating depth in column to each card in column
 -- display card in column position specified by (hindex,vindex)
-showColumn :: Int -> Column -> IO ()
-showColumn hindex column = do
-    showEmptyColumn hindex 
-    showHiddenColumn hindex column
-    showVisibleColumn hindex column
+placeColumn :: Int -> Column -> IO ()
+placeColumn hindex column = do
+    placeEmptyColumn hindex 
+    placeHiddenColumn hindex column
+    placeVisibleColumn hindex column
 
-showFoundation :: Int -> [Card] -> IO ()
-showFoundation hindex foundation = do
+placeFoundation :: Int -> [Card] -> IO ()
+placeFoundation hindex foundation = do
     placeFoundationCard "base_only" (emptyFoundationClass++show hindex) emptyFoundationClass hindex 
     mapM_ pc $ reverse foundation
         where pc card = placeFoundationCard (svgString card) (svgString card) (foundationClassPrefix++show hindex) hindex 
 
-showDeck :: [Card] -> IO ()
-showDeck deck = do
+placeDeck :: [Card] -> IO ()
+placeDeck deck = do
     placeDeckCard "base_only" "base_only_deck" emptyDeckClass
     mapM_ (\card -> placeDeckCard (svgString card) (svgString card) deckClass) $ reverse deck
 
-showReserves :: [Card] -> IO ()
-showReserves deck = do
+placeReserves :: [Card] -> IO ()
+placeReserves deck = do
     placeReservesCard "base_only" "base_only_reserves" emptyReservesClass 
     mapM_ (\card -> placeReservesCard "back" (svgString card) reservesClass) deck
 
-showGame :: Game -> IO ()
-showGame game@(Game foundations columns deck reserves)  =  do
-    mapM_ (uncurry showColumn) (zip [0..] columns)
-    mapM_ (uncurry showFoundation) (zip [0..] foundations)
-    showDeck deck
-    showReserves reserves
+placeGame :: Game -> IO ()
+placeGame game@(Game foundations columns deck reserves)  =  do
+    mapM_ (uncurry placeColumn) (zip [0..] columns)
+    mapM_ (uncurry placeFoundation) (zip [0..] foundations)
+    placeDeck deck
+    placeReserves reserves
          
 setCallbacks :: Game -> Maybe String -> IO ()
 setCallbacks game topClass = do
@@ -200,11 +200,11 @@ onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y =
         setCallbacks game $ Just newTopClass
         if isVisCol then
             let sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
-            in showVisibleColumn sourceColumnIndex (cg !! sourceColumnIndex)
+            in placeVisibleColumn sourceColumnIndex (cg !! sourceColumnIndex)
         else if isRes then
-            showReserves rg
+            placeReserves rg
         else if isDeck then
-            showDeck dg
+            placeDeck dg
         else
             let errorMsg = "In onMouseover - Unhandled id/class: " ++ fromJSStr jsCardId ++ "/" ++ fromJSStr jsClass 
             in consoleLog_ffi $ toJSStr errorMsg
@@ -224,13 +224,13 @@ moveFromColumnToColumn game@(Game _ cg _ _) topClass cardId cls x y =
 
    in if isValidMove then do
            let newGame@(Game _ ncg _ _) = fromColumnToColumn game sourceColumnIndex destColumnIndex
-               newTopClass = ".visibleColumn" ++ show sourceColumnIndex
-           showColumn destColumnIndex $ ncg !! destColumnIndex
+               newTopClass = visibleColumnPrefix ++ show sourceColumnIndex
+           placeColumn destColumnIndex $ ncg !! destColumnIndex
            deleteColumn sourceColumnIndex
-           showColumn sourceColumnIndex $ ncg !! sourceColumnIndex
+           placeColumn sourceColumnIndex $ ncg !! sourceColumnIndex
            setCallbacks newGame $ Just newTopClass
       else -- not a valid move for some reason
-           showColumn sourceColumnIndex $ cg !! sourceColumnIndex
+           placeColumn sourceColumnIndex $ cg !! sourceColumnIndex
 
 moveFromColumnToFoundation :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromColumnToFoundation game@(Game fg cg _ _)  topClass cardId cls x y =
@@ -239,29 +239,29 @@ moveFromColumnToFoundation game@(Game fg cg _ _)  topClass cardId cls x y =
         sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
     in if isValidMove then do
             let newGame@(Game nfg ncg _ _) = fromColumnToFoundation game sourceColumnIndex destFoundationIndex
-            showFoundation destFoundationIndex $ nfg !! destFoundationIndex
+            placeFoundation destFoundationIndex $ nfg !! destFoundationIndex
             deleteColumn sourceColumnIndex
-            showColumn sourceColumnIndex $ ncg !! sourceColumnIndex
+            placeColumn sourceColumnIndex $ ncg !! sourceColumnIndex
             setCallbacks newGame topClass -- nothing new on table - no need to change topClass 
        else -- not a valid move for some reason
-            showColumn sourceColumnIndex $ cg !! sourceColumnIndex
+            placeColumn sourceColumnIndex $ cg !! sourceColumnIndex
 
 moveFromReservesToDeck :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromReservesToDeck game topClass cardId cls x y = do
     let newGame@(Game _ _ ndg nrg) = fromReservesToDeck game 
     deleteReserves -- this is to get rid of the face down card that was just dragged.
-    showReserves nrg
+    placeReserves nrg
     deleteDeck
-    showDeck ndg
+    placeDeck ndg
     setCallbacks newGame $ Just ".solitareDeck"
 
 moveFromDeckToReserves :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromDeckToReserves game topClass cardId cls x y = do
     let newGame@(Game _ _ ndg nrg) = fromDeckToReserves game 
     deleteDeck
-    -- showDeck ndg -- no need to show deck since there is none
+    -- placeDeck ndg -- no need to place deck since there is none
     deleteReserves -- this is to get rid of the face up card that was just dragged.
-    showReserves nrg
+    placeReserves nrg
     setCallbacks newGame $ Just ".hiddenReserves"
 
 moveFromDeckToColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
@@ -270,10 +270,10 @@ moveFromDeckToColumn game@(Game _ cg dg _) topClass cardId cls x y = do
         isValidMove = head dg `goesOnColumn` (cg !! destColumnIndex)
         newGame@(Game _ ncg _ _) = fromDeckToColumn game destColumnIndex
     if isValidMove then do
-        showColumn destColumnIndex (ncg !! destColumnIndex)
+        placeColumn destColumnIndex (ncg !! destColumnIndex)
         setCallbacks newGame topClass  -- top class does not change.
     else
-        showDeck dg
+        placeDeck dg
 
 moveFromDeckToFoundation :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromDeckToFoundation game@(Game fg _ dg _) topClass cardId cls x y = do
@@ -281,10 +281,10 @@ moveFromDeckToFoundation game@(Game fg _ dg _) topClass cardId cls x y = do
         isValidMove = head dg `goesOnFoundation` (fg !! destFoundationIndex)
         newGame@(Game nfg _ _ _) = fromDeckToFoundation game destFoundationIndex
     if isValidMove then do
-        showFoundation destFoundationIndex $ nfg !! destFoundationIndex
+        placeFoundation destFoundationIndex $ nfg !! destFoundationIndex
         setCallbacks newGame topClass  -- top class does not change.
     else
-        showDeck dg
+        placeDeck dg
 
 onDragEnd :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
 onDragEnd game topClass jsCardId jsClass x y 
@@ -294,7 +294,7 @@ onDragEnd game topClass jsCardId jsClass x y
     | fromDeck && toReserves     = moveFromDeckToReserves game topClass cardId cls x y 
     | fromDeck && toColumn       = moveFromDeckToColumn game topClass cardId cls x y 
     | fromDeck && toFoundation   = moveFromDeckToFoundation game topClass cardId cls x y 
-    | otherwise                  = showGame game
+    | otherwise                  = placeGame game
     where cls = fromJSStr jsClass
           cardId  = fromJSStr jsCardId
 
@@ -318,6 +318,6 @@ main = loadCards_ffi(toPtr loadCallback) where
             deck        = []
             game        = Game foundations columns deck shuffledDeck
             gameInPlay  = start game
-        showGame gameInPlay
+        placeGame gameInPlay
         setCallbacks gameInPlay Nothing
 

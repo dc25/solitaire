@@ -253,7 +253,7 @@ moveFromReservesToDeck game topClass cardId cls x y = do
     placeReserves nrg
     deleteDeck
     placeDeck ndg
-    setCallbacks newGame $ Just ".solitareDeck"
+    setCallbacks newGame $ Just deckClass
 
 moveFromDeckToReserves :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromDeckToReserves game topClass cardId cls x y = do
@@ -262,7 +262,7 @@ moveFromDeckToReserves game topClass cardId cls x y = do
     -- placeDeck ndg -- no need to place deck since there is none
     deleteReserves -- this is to get rid of the face up card that was just dragged.
     placeReserves nrg
-    setCallbacks newGame $ Just ".hiddenReserves"
+    setCallbacks newGame $ Just reservesClass
 
 moveFromDeckToColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromDeckToColumn game@(Game _ cg dg _) topClass cardId cls x y = do

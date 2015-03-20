@@ -186,7 +186,7 @@ onMouseover :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO 
 onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y = 
     when (differentTopClass && (isVisCol || isRes || isDeck )) $ 
     do
-        deleteBySelectionString_ffi $ toJSStr newTopClass
+        deleteBySelectionString_ffi $ toJSStr ("." ++ newTopClass)
         setCallbacks game $ Just newTopClass
         if isVisCol then
             let sourceColumnIndex = read (fromJust (stripPrefix "visibleColumn" cls)) :: Int
@@ -203,7 +203,7 @@ onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y =
         isVisCol = "visibleColumn" `isPrefixOf` cls 
         isRes = "hiddenReserves" == cls 
         isDeck = "solitareDeck" == cls 
-        newTopClass = "." ++ fromJSStr jsClass
+        newTopClass = fromJSStr jsClass
         differentTopClass = Just newTopClass /= topClass
 
 moveFromColumnToColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> Int -> IO ()

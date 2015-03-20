@@ -92,7 +92,7 @@ function mouseover(d,i) {
     B(A(mouseoverCallback, [[0,mousedId], [0,mousedClassName], [0,xCoord], [0,yCoord], 0]));
 }
 
-function getBaseOffset(card:HTMLElement) 
+function getBaseOffset(card:Element) 
 {
     // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
 
@@ -107,9 +107,12 @@ function getBaseOffset(card:HTMLElement)
 
 function alignCard_ffi(name:string, classname:string, x:number, y:number) {
 
-    var card = document.getElementById(name);
+    // Thanks to : 
+    // http://stackoverflow.com/questions/10337640/how-to-access-the-dom-element-that-correlates-to-a-d3-svg-object
+    // for telling how to use node() to retrieve DOM element from selection.
 
-    var baseOffset = getBaseOffset(card);
+    var card = d3.select('body svg g[data-name="' +name +'"]').node();
+    var baseOffset = getBaseOffset(card);  
 
     d3.select('body svg g[data-name="' +name +'"]')
         .data([{xtranslate:(0      + x/cardScale - baseOffset.x),

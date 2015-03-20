@@ -120,14 +120,33 @@ function getBaseOffset(card:Element)
 }
 
 
-function alignCard_ffi(name:string, classname:string, x:number, y:number) {
+function placeCard_ffi(id:string, name:string, classname:string, x:number, y:number) {
 
     // Thanks to : 
     // http://stackoverflow.com/questions/10337640/how-to-access-the-dom-element-that-correlates-to-a-d3-svg-object
     // for telling how to use node() to retrieve DOM element from selection.
 
     var cardSelect = d3.select('body svg g[data-name="' +name +'"]');
-    var card = cardSelect.node();
+
+    var card;
+    var selected = ! cardSelect.empty();
+    if (selected) {
+        card = cardSelect.node();
+    } else {
+        console.log("card not selected: " + name)
+        card = document.getElementById(id);
+        cardSelect 
+            = d3.select("body svg")
+                .append("g")
+                .each(function(d, i) { 
+                           this.appendChild(card.cloneNode(true)); 
+                       }
+                     )
+                .attr("data-name", function(d, i){ 
+                           return name; 
+                       }
+                     );
+    }
     var baseOffset = getBaseOffset(card);  
 
     cardSelect
@@ -135,59 +154,28 @@ function alignCard_ffi(name:string, classname:string, x:number, y:number) {
                 ytranslate:(235.27 + y/cardScale - baseOffset.y)
                 }]
              )
-        .attr("class", function(d, i){ 
-                   return classname; 
-               }
-             )
-        .transition()
-        .attr("transform", function(d, i){ 
-                 return "scale (" + cardScale + ")"
-                      + "translate (" + d.xtranslate + "," + d.ytranslate + ")" ;
-               }
-             )
-        ;
-}
+        .attr("class", function(d, i){ return classname; });
 
-function placeCard_ffi(id:string, name:string, classname:string, x:number, y:number) {
-    var card = document.getElementById(id);
-    var baseOffset = getBaseOffset(card);
-
-    d3.select("body svg")
-        .append("g")
-        .each(function(d, i) { 
-                   this.appendChild(card.cloneNode(true)); 
-               }
-             )
-        .attr("data-name", function(d, i){ 
-                   return name; 
-               }
-             )
-        .attr("class", function(d, i){ 
-                   return classname; 
-               }
-             )
-        .data([{xtranslate:(0      + x/cardScale - baseOffset.x),
-                ytranslate:(235.27 + y/cardScale - baseOffset.y)
-                }]
-             )
-        .attr("transform", function(d, i){ 
-                 return "scale (" + cardScale + ")"
-                      + "translate (" + d.xtranslate + "," + d.ytranslate + ")" ;
-               }
-             )
-        .on("mouseover", mouseover)
-        ;
-
-    // There must be a better way of enabling drag 
-    // for new cards in a visble column.
-    if (    (classname.indexOf("visibleColumn") > -1)
-         || (classname == "hiddenReserves")  
-         || (classname == "solitareDeck")  )
-    {
-        var selectArg = "g[class=" + classname + "]";
-        d3.selectAll(selectArg).call(drag);
+    var transformFunction = function(d, i){ 
+        return "scale (" + cardScale + ")"
+             + "translate (" + d.xtranslate + "," + d.ytranslate + ")" ;
     }
 
+    if (selected) {
+        cardSelect.transition().attr("transform", transformFunction);
+    } else {
+        cardSelect.attr("transform", transformFunction).on("mouseover", mouseover);
+
+        // There must be a better way of enabling drag 
+        // for new cards in a visble column.
+        if (    (classname.indexOf("visibleColumn") > -1)
+             || (classname == "hiddenReserves")  
+             || (classname == "solitareDeck")  )
+        {
+            var selectArg = "g[class=" + classname + "]";
+            d3.selectAll(selectArg).call(drag);
+        }
+    }
 }
 
 function deleteBySelectionString_ffi(cssSelection:string) {

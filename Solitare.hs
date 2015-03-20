@@ -286,7 +286,7 @@ moveFromColumn game@(Game _ cg _ _) topClass cardId cls x y
         draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
 
 moveFromReservesToDeck :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
-moveFromReservesToDeck game@(Game _ _ _ rg) topClass cardId cls x y = do
+moveFromReservesToDeck game@(Game _ _ _ _) topClass cardId cls x y = do
     let newGame@(Game _ _ ndg nrg) = fromReservesToDeck game 
     deleteReserves -- this is to get rid of the face down card that was just dragged.
     showReserves nrg
@@ -301,10 +301,29 @@ moveFromReserves game@(Game _ cg _ rg) topClass cardId cls x y
     where
         draggedToDeck = y < yColumnPlacement && x >= xDeckPlacement && x < (xDeckPlacement + xSep)
 
+moveFromDeckToReserves :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
+moveFromDeckToReserves game@(Game _ _ _ _) topClass cardId cls x y = do
+    let newGame@(Game _ _ ndg nrg) = fromDeckToReserves game 
+    deleteDeck
+    -- showDeck ndg -- no need to show deck since there is none
+    deleteReserves -- this is to get rid of the face up card that was just dragged.
+    showReserves nrg
+    setCallbacks newGame $ Just (".hiddenReserves")
+
+moveFromDeck :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
+moveFromDeck game@(Game _ cg _ rg) topClass cardId cls x y 
+    | draggedToReserves = moveFromDeckToReserves game topClass cardId cls x y 
+    | otherwise = alignReserves rg
+    where
+        draggedToReserves = y < yColumnPlacement && x >= xReservesPlacement && x < (xReservesPlacement + xSep)
+        draggedToColumn = (y >= yColumnPlacement && x >= xColumnPlacement)
+        draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
+
 onDragEnd :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
 onDragEnd game topClass jsCardId jsClass x y 
     | "visibleColumn" `isPrefixOf` cls = moveFromColumn game topClass cardId cls x y 
     | "hiddenReserves" == cls = moveFromReserves game topClass cardId cls x y 
+    | "solitareDeck" == cls = moveFromDeck game topClass cardId cls x y 
     | otherwise = do 
           let errorMsg = "In onDragEnd - Unhandled id/class: " ++ (fromJSStr jsCardId) ++ "/" ++ (fromJSStr jsClass) 
           consoleLog_ffi $ toJSStr errorMsg

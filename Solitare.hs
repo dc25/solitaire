@@ -216,10 +216,11 @@ onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y =
         newTopClass = fromJSStr jsClass
         differentTopClass = Just newTopClass /= topClass
 
-moveFromColumnToColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> Int -> IO ()
-moveFromColumnToColumn game@(Game _ cg _ _) topClass cardId cls x y sourceColumnIndex =
+moveFromColumnToColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
+moveFromColumnToColumn game@(Game _ cg _ _) topClass cardId cls x y =
    let destColumnIndex  = min 6 $ (x - xColumnPlacement) `div` xSep
        isValidMove = (last.visible $ cg !! sourceColumnIndex) `goesOnColumn` (cg !! destColumnIndex)
+       sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
 
    in if isValidMove then do
            let newGame@(Game _ ncg _ _) = fromColumnToColumn game sourceColumnIndex destColumnIndex
@@ -231,10 +232,11 @@ moveFromColumnToColumn game@(Game _ cg _ _) topClass cardId cls x y sourceColumn
       else -- not a valid move for some reason
            showColumn sourceColumnIndex $ cg !! sourceColumnIndex
 
-moveFromColumnToFoundation :: Game -> Maybe String -> String -> String -> Int -> Int -> Int -> IO ()
-moveFromColumnToFoundation game@(Game fg cg _ _)  topClass cardId cls x y sourceColumnIndex =
+moveFromColumnToFoundation :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
+moveFromColumnToFoundation game@(Game fg cg _ _)  topClass cardId cls x y =
     let destFoundationIndex = min 3 $ (x - xFoundationPlacement) `div` xSep
         isValidMove = (head.visible) (cg !! sourceColumnIndex) `goesOnFoundation` (fg !! destFoundationIndex)
+        sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
     in if isValidMove then do
             let newGame@(Game nfg ncg _ _) = fromColumnToFoundation game sourceColumnIndex destFoundationIndex
             showFoundation destFoundationIndex $ nfg !! destFoundationIndex
@@ -244,16 +246,6 @@ moveFromColumnToFoundation game@(Game fg cg _ _)  topClass cardId cls x y source
        else -- not a valid move for some reason
             showColumn sourceColumnIndex $ cg !! sourceColumnIndex
 
-moveFromColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
-moveFromColumn game@(Game _ cg _ _) topClass cardId cls x y 
-    | draggedToColumn = moveFromColumnToColumn game topClass cardId cls x y sourceColumnIndex
-    | draggedToFoundation  = moveFromColumnToFoundation game topClass cardId cls x y sourceColumnIndex
-    | otherwise = showColumn sourceColumnIndex $ cg !! sourceColumnIndex
-    where
-        sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
-        draggedToColumn = y >= yColumnPlacement && x >= xColumnPlacement
-        draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
-
 moveFromReservesToDeck :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromReservesToDeck game topClass cardId cls x y = do
     let newGame@(Game _ _ ndg nrg) = fromReservesToDeck game 
@@ -262,13 +254,6 @@ moveFromReservesToDeck game topClass cardId cls x y = do
     deleteDeck
     showDeck ndg
     setCallbacks newGame $ Just ".solitareDeck"
-
-moveFromReserves :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
-moveFromReserves game@(Game _ cg _ rg) topClass cardId cls x y 
-    | draggedToDeck = moveFromReservesToDeck game topClass cardId cls x y 
-    | otherwise = showReserves rg
-    where
-        draggedToDeck = y < yColumnPlacement && x >= xDeckPlacement && x < (xDeckPlacement + xSep)
 
 moveFromDeckToReserves :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 moveFromDeckToReserves game topClass cardId cls x y = do
@@ -301,27 +286,27 @@ moveFromDeckToFoundation game@(Game fg _ dg _) topClass cardId cls x y = do
     else
         showDeck dg
 
-moveFromDeck :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
-moveFromDeck game@(Game _ cg dg _) topClass cardId cls x y 
-    | draggedToReserves = moveFromDeckToReserves game topClass cardId cls x y 
-    | draggedToColumn = moveFromDeckToColumn game topClass cardId cls x y 
-    | draggedToFoundation = moveFromDeckToFoundation game topClass cardId cls x y 
-    | otherwise = showDeck dg
-    where
-        draggedToReserves = y < yColumnPlacement && x >= xReservesPlacement && x < (xReservesPlacement + xSep)
-        draggedToColumn = y >= yColumnPlacement && x >= xColumnPlacement
-        draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
-
 onDragEnd :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
 onDragEnd game topClass jsCardId jsClass x y 
-    | visibleColumnPrefix `isPrefixOf` cls = moveFromColumn game topClass cardId cls x y 
-    | reservesClass == cls = moveFromReserves game topClass cardId cls x y 
-    | deckClass == cls = moveFromDeck game topClass cardId cls x y 
-    | otherwise = do 
-          let errorMsg = "In onDragEnd - Unhandled id/class: " ++ fromJSStr jsCardId ++ "/" ++ fromJSStr jsClass 
-          consoleLog_ffi $ toJSStr errorMsg
+    | fromColumn && toColumn     = moveFromColumnToColumn game topClass cardId cls x y 
+    | fromColumn && toFoundation = moveFromColumnToFoundation game topClass cardId cls x y 
+    | fromReserves && toDeck     = moveFromReservesToDeck game topClass cardId cls x y 
+    | fromDeck && toReserves     = moveFromDeckToReserves game topClass cardId cls x y 
+    | fromDeck && toColumn       = moveFromDeckToColumn game topClass cardId cls x y 
+    | fromDeck && toFoundation   = moveFromDeckToFoundation game topClass cardId cls x y 
+    | otherwise                  = showGame game
     where cls = fromJSStr jsClass
           cardId  = fromJSStr jsCardId
+
+          fromColumn = visibleColumnPrefix `isPrefixOf` cls 
+          fromReserves = reservesClass == cls 
+          fromDeck = deckClass == cls 
+
+          toReserves = y < yColumnPlacement && x >= xReservesPlacement && x < (xReservesPlacement + xSep)
+          toColumn = y >= yColumnPlacement && x >= xColumnPlacement
+          toFoundation = y < yColumnPlacement && x >= xFoundationPlacement
+          toDeck = y < yColumnPlacement && x >= xDeckPlacement && x < (xDeckPlacement + xSep)
+
 
 main = loadCards_ffi(toPtr loadCallback) where
     loadCallback = do

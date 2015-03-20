@@ -83,6 +83,14 @@ deleteVisibleColumn :: Int -> IO ()
 deleteVisibleColumn hindex = 
     deleteBySelectionString_ffi $ toJSStr (".visibleColumn"++show hindex)
 
+deleteDeck :: IO()
+deleteDeck =
+    deleteBySelectionString_ffi $ toJSStr (".solitareDeck")
+
+deleteReserves :: IO()
+deleteReserves =
+    deleteBySelectionString_ffi $ toJSStr (".hiddenReserves")
+
 deleteColumn :: Int -> IO ()
 deleteColumn hindex = do
     deleteHiddenColumn hindex 
@@ -152,7 +160,7 @@ showFoundation hindex foundation = do
 showDeck :: [Card] -> IO ()
 showDeck deck = do
     placeDeckCard "base_only" "base_only" "emptyDeck" 
-    sequence_ $ map (\card -> placeDeckCard (svgString card) (svgString card) "hiddenDeck") deck
+    sequence_ $ map (\card -> placeDeckCard (svgString card) (svgString card) "solitareDeck") $ reverse deck
 
 showReserves :: [Card] -> IO ()
 showReserves deck = do
@@ -214,13 +222,6 @@ alignReserves :: [Card] -> IO ()
 alignReserves reserves = do
     sequence_ $ map (\card -> alignReservesCard (svgString card) "hiddenReserves") reserves
 
-alignGame :: Game -> IO ()
-alignGame game@(Game foundations columns deck reserves)  = do
-        sequence_ $ map (uncurry alignColumn) $ zip [0..] columns
-        sequence_ $ map (uncurry alignFoundation) $ zip [0..] foundations
-        -- alignDeck deck
-        alignReserves reserves
-         
 setCallbacks :: Game -> Maybe String -> IO ()
 setCallbacks game topClass = do
         setDragEndCallback_ffi $ (toPtr $ onDragEnd game topClass)
@@ -245,7 +246,6 @@ onMouseover game@(Game _ cg _ _) topClass jsCardId jsClass x y =
                    setCallbacks game $ Just newTopClass
                else
                    return ()
--- game@(Game _ cg _ _) 
 
 moveFromColumnToColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> Int -> IO ()
 moveFromColumnToColumn game@(Game _ cg _ _) topClass cardId cls x y sourceColumnIndex =
@@ -285,16 +285,31 @@ moveFromColumn game@(Game _ cg _ _) topClass cardId cls x y
         draggedToColumn = (y >= yColumnPlacement && x >= xColumnPlacement)
         draggedToFoundation = y < yColumnPlacement && x >= xFoundationPlacement
 
+moveFromReservesToDeck :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
+moveFromReservesToDeck game@(Game _ _ _ rg) topClass cardId cls x y = do
+    let newGame@(Game _ _ ndg nrg) = fromReservesToDeck game 
+    deleteReserves -- this is to get rid of the face down card that was just dragged.
+    showReserves nrg
+    deleteDeck
+    showDeck ndg
+    setCallbacks newGame $ Just (".solitareDeck")
+
+moveFromReserves :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
+moveFromReserves game@(Game _ cg _ rg) topClass cardId cls x y 
+    | draggedToDeck = moveFromReservesToDeck game topClass cardId cls x y 
+    | otherwise = alignReserves rg
+    where
+        draggedToDeck = y < yColumnPlacement && x >= xDeckPlacement && x < (xDeckPlacement + xSep)
+
 onDragEnd :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
 onDragEnd game topClass jsCardId jsClass x y 
     | "visibleColumn" `isPrefixOf` cls = moveFromColumn game topClass cardId cls x y 
+    | "hiddenReserves" == cls = moveFromReserves game topClass cardId cls x y 
     | otherwise = do 
           let errorMsg = "In onDragEnd - Unhandled id/class: " ++ (fromJSStr jsCardId) ++ "/" ++ (fromJSStr jsClass) 
           consoleLog_ffi $ toJSStr errorMsg
     where cls = fromJSStr jsClass
           cardId  = fromJSStr jsCardId
-
-
 
 loadCallback = do
     shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], s<-[Hearts .. Clubs]] 

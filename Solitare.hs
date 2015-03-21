@@ -301,13 +301,17 @@ onDragEnd game topClass jsCardId jsClass x y
 
 main = loadCards_ffi(toPtr loadCallback) where
     loadCallback = do
-        shuffledDeck <- shuffle [ Card r s | r<-[Ace .. King], 
-                                             s<-[Hearts .. Clubs]] 
+        shuffledDeck <- shuffle [ Card r s 
+                                    | r<-[Ace .. King], 
+                                      s<-[Hearts .. Clubs]] 
         let
             foundations = replicate 4 []
             columns     = replicate 7 $ Column [] []
             deck        = []
-            game        = Game foundations columns deck shuffledDeck
+            game        = Game foundations 
+                               columns 
+                               deck 
+                               shuffledDeck
             gameInPlay  = start game
         placeGame gameInPlay
         setCallbacks gameInPlay Nothing

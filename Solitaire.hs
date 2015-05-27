@@ -1,6 +1,5 @@
 import Haste
 import Haste.DOM
-import Haste.Events
 import Haste.Prim
 import Haste.Foreign
 

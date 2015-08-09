@@ -81,7 +81,7 @@ function dragend(d) {
     var xCoord = coordinates[0];
     var yCoord = coordinates[1];
     
-    B(A(dragEndCallback, [ [0,draggedId], [0,draggedClassName], [0,xCoord], [0,yCoord], 0]));
+    dragEndCallback (draggedId, draggedClassName, xCoord, yCoord);
 }
 
 // Provide for callback into haskell when mouse passes over object
@@ -103,8 +103,8 @@ function mouseover(d,i) {
     var coordinates = d3.mouse(this.parentNode);
     var xCoord = coordinates[0];
     var yCoord = coordinates[1];
-    
-    B(A(mouseoverCallback, [[0,mousedId], [0,mousedClassName], [0,xCoord], [0,yCoord], 0]));
+
+    mouseoverCallback(mousedId, mousedClassName, xCoord, yCoord);
 }
 
 function placeCard_ffi(id:string, name:string, classname:string, x:number, y:number) {

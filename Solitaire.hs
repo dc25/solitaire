@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 import Haste
 import Haste.DOM
 import Haste.Prim
@@ -13,15 +14,22 @@ import Shuffle
 import Card
 import Game
 
--- javascript functionality
-foreign import ccall placeAlert_ffi :: JSString -> IO ()
-foreign import ccall consoleLog_ffi :: JSString -> IO ()
+placeAlert_ffi :: String-> IO ()
+placeAlert_ffi = ffi "(function (msg) { alert(msg); })"
+
+consoleLog_ffi :: String-> IO ()
+consoleLog_ffi = ffi "(function (msg) { console.log(msg); })"
+
 
 foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
 foreign import ccall placeCard_ffi :: JSString -> JSString -> JSString -> Int -> Int -> IO ()
 foreign import ccall deleteByClass_ffi :: JSString -> IO ()
-foreign import ccall setMouseoverCallback_ffi :: Ptr (JSString -> JSString -> Int -> Int -> IO ()) -> IO ()
-foreign import ccall setDragEndCallback_ffi :: Ptr (JSString -> JSString -> Int -> Int -> IO ()) -> IO ()
+
+setMouseoverCallback_ffi :: (String -> String -> Int -> Int -> IO ()) -> IO ()
+setMouseoverCallback_ffi  = ffi "(function (cb) { mouseoverCallback = cb; })"
+
+setDragEndCallback_ffi :: (String -> String -> Int -> Int -> IO ()) -> IO ()
+setDragEndCallback_ffi = ffi "(function(cb) { dragEndCallback = cb; })"
 
 rankSVGString :: Rank -> String
 rankSVGString Ten =   "10"
@@ -179,10 +187,10 @@ placeGame game@(Game foundations columns deck reserves)  =  do
          
 setCallbacks :: Game -> Maybe String -> IO ()
 setCallbacks game topClass = do
-    setDragEndCallback_ffi $ toPtr (onDragEnd game topClass)
-    setMouseoverCallback_ffi $ toPtr (onMouseover game topClass)
+    setDragEndCallback_ffi $ (onDragEnd game topClass)
+    setMouseoverCallback_ffi $ (onMouseover game topClass)
 
-onMouseover :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
+onMouseover :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y = 
     when (differentTopClass && (isVisCol || isRes || isDeck )) $ 
     do
@@ -196,14 +204,14 @@ onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y =
         else if isDeck then
             placeDeck dg
         else
-            let errorMsg = "In onMouseover - Unhandled id/class: " ++ fromJSStr jsCardId ++ "/" ++ fromJSStr jsClass 
-            in consoleLog_ffi $ toJSStr errorMsg
+            let errorMsg = "In onMouseover - Unhandled id/class: " ++ jsCardId ++ "/" ++ jsClass 
+            in consoleLog_ffi errorMsg
     where
-        cls = fromJSStr jsClass
+        cls = jsClass
         isVisCol = visibleColumnPrefix `isPrefixOf` cls 
         isRes = reservesClass == cls 
         isDeck = deckClass == cls 
-        newTopClass = fromJSStr jsClass
+        newTopClass = jsClass
         differentTopClass = Just newTopClass /= topClass
 
 moveFromColumnToColumn :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
@@ -276,7 +284,7 @@ moveFromDeckToFoundation game@(Game fg _ dg _) topClass cardId cls x y = do
     else
         placeDeck dg
 
-onDragEnd :: Game -> Maybe String -> JSString -> JSString -> Int -> Int -> IO ()
+onDragEnd :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 onDragEnd game topClass jsCardId jsClass x y 
     | fromColumn && toColumn     = moveFromColumnToColumn game topClass cardId cls x y 
     | fromColumn && toFoundation = moveFromColumnToFoundation game topClass cardId cls x y 
@@ -285,8 +293,8 @@ onDragEnd game topClass jsCardId jsClass x y
     | fromDeck && toColumn       = moveFromDeckToColumn game topClass cardId cls x y 
     | fromDeck && toFoundation   = moveFromDeckToFoundation game topClass cardId cls x y 
     | otherwise                  = placeGame game
-    where cls = fromJSStr jsClass
-          cardId  = fromJSStr jsCardId
+    where cls = jsClass
+          cardId  = jsCardId
 
           fromColumn = visibleColumnPrefix `isPrefixOf` cls 
           fromReserves = reservesClass == cls 

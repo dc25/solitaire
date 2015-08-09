@@ -107,7 +107,7 @@ function mouseover(d,i) {
     mouseoverCallback(mousedId, mousedClassName, xCoord, yCoord);
 }
 
-function placeCard_ffi(id:string, name:string, classname:string, x:number, y:number) {
+function placeCard(id:string, name:string, classname:string, x:number, y:number) {
 
     // Thanks to : 
     // http://stackoverflow.com/questions/10337640/how-to-access-the-dom-element-that-correlates-to-a-d3-svg-object
@@ -169,11 +169,11 @@ function placeCard_ffi(id:string, name:string, classname:string, x:number, y:num
     }
 }
 
-function deleteByClass_ffi(cssSelection:string) {
+function deleteByClass(cssSelection:string) {
     d3.selectAll("." + cssSelection).remove()
 }
 
-function loadCards_ffi(cb) {
+function loadCards(cb) {
     //Import the full deck of cards.
     d3.xml("pretty-svg-cards.svg", "image/svg+xml", function(xml) {  
 
@@ -185,6 +185,6 @@ function loadCards_ffi(cb) {
           });
 
         // Call back to haskell when done.
-        B(A(cb, [0])); 
+        cb();
     });
 }

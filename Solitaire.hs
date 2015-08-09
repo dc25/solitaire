@@ -20,10 +20,14 @@ placeAlert_ffi = ffi "(function (msg) { alert(msg); })"
 consoleLog_ffi :: String-> IO ()
 consoleLog_ffi = ffi "(function (msg) { console.log(msg); })"
 
+loadCards_ffi :: (IO ()) -> IO ()
+loadCards_ffi = ffi "(function (cb) { loadCards(cb); })"
 
-foreign import ccall loadCards_ffi :: Ptr (IO ()) -> IO ()
-foreign import ccall placeCard_ffi :: JSString -> JSString -> JSString -> Int -> Int -> IO ()
-foreign import ccall deleteByClass_ffi :: JSString -> IO ()
+placeCard_ffi :: String -> String -> String -> Int -> Int -> IO ()
+placeCard_ffi = ffi "(function (id, name, classname, x, y) { placeCard(id, name, classname, x, y); })"
+
+deleteByClass_ffi :: String -> IO ()
+deleteByClass_ffi = ffi "(function (classname) { deleteByClass(classname); })"
 
 setMouseoverCallback_ffi :: (String -> String -> Int -> Int -> IO ()) -> IO ()
 setMouseoverCallback_ffi  = ffi "(function (cb) { mouseoverCallback = cb; })"
@@ -93,21 +97,21 @@ foundationClassPrefix = "foundation"
 
 deleteHiddenColumn :: Int -> IO ()
 deleteHiddenColumn hindex = 
-    deleteByClass_ffi $ toJSStr (hiddenColumnPrefix++show hindex)
+    deleteByClass_ffi (hiddenColumnPrefix++show hindex)
 
 deleteVisibleColumn :: Int -> IO ()
 deleteVisibleColumn hindex = 
-    deleteByClass_ffi $ toJSStr (visibleColumnPrefix++show hindex)
+    deleteByClass_ffi (visibleColumnPrefix++show hindex)
 
 deleteDeck :: IO()
 deleteDeck = do
-    deleteByClass_ffi $ toJSStr emptyDeckClass
-    deleteByClass_ffi $ toJSStr deckClass
+    deleteByClass_ffi emptyDeckClass
+    deleteByClass_ffi deckClass
 
 deleteReserves :: IO()
 deleteReserves = do
-    deleteByClass_ffi $ toJSStr emptyReservesClass
-    deleteByClass_ffi $ toJSStr reservesClass
+    deleteByClass_ffi emptyReservesClass
+    deleteByClass_ffi reservesClass
 
 deleteColumn :: Int -> IO ()
 deleteColumn hindex = do
@@ -118,22 +122,22 @@ deleteColumn hindex = do
 -- place card with id, css class, column, depth in column
 placeTableCard :: String -> String -> String -> Int -> Int -> IO ()
 placeTableCard id name cssClass columnIndex positionInColumn =
-    placeCard_ffi (toJSStr id) (toJSStr name) (toJSStr cssClass) (xColumnPlacement+ xSep*columnIndex) (yColumnPlacement+ ySep*positionInColumn)
+    placeCard_ffi id name cssClass (xColumnPlacement+ xSep*columnIndex) (yColumnPlacement+ ySep*positionInColumn)
 
 -- place card with id, column on foundation
 placeFoundationCard :: String -> String -> String -> Int -> IO ()
 placeFoundationCard id name cssClass hindex =
-    placeCard_ffi (toJSStr id) (toJSStr name) (toJSStr cssClass) (xFoundationPlacement+ xSep*hindex) (yFoundationPlacement)
+    placeCard_ffi id name cssClass (xFoundationPlacement+ xSep*hindex) (yFoundationPlacement)
 
 -- place card with id, class, on deck
 placeDeckCard :: String -> String -> String -> IO ()
 placeDeckCard id name cssClass =
-    placeCard_ffi (toJSStr id) (toJSStr name) (toJSStr cssClass) xDeckPlacement yDeckPlacement
+    placeCard_ffi id name cssClass xDeckPlacement yDeckPlacement
 
 -- place card with id, class, on reserves
 placeReservesCard :: String -> String -> String -> IO ()
 placeReservesCard id name cssClass =
-    placeCard_ffi (toJSStr id) (toJSStr name) (toJSStr cssClass) xReservesPlacement yReservesPlacement
+    placeCard_ffi id name cssClass xReservesPlacement yReservesPlacement
 
 -- display blanks to indicate where cards go if column is empty.
 placeEmptyColumn :: Int -> IO ()
@@ -194,7 +198,7 @@ onMouseover :: Game -> Maybe String -> String -> String -> Int -> Int -> IO ()
 onMouseover game@(Game _ cg dg rg) topClass jsCardId jsClass x y = 
     when (differentTopClass && (isVisCol || isRes || isDeck )) $ 
     do
-        deleteByClass_ffi $ toJSStr newTopClass
+        deleteByClass_ffi newTopClass
         setCallbacks game $ Just newTopClass
         if isVisCol then
             let sourceColumnIndex = read (fromJust (stripPrefix visibleColumnPrefix cls)) :: Int
@@ -306,7 +310,7 @@ onDragEnd game topClass jsCardId jsClass x y
           toDeck = y < yColumnPlacement && x >= xDeckPlacement && x < (xDeckPlacement + xSep)
 
 
-main = loadCards_ffi(toPtr loadCallback) where
+main = loadCards_ffi(loadCallback) where
     loadCallback = do
         shuffledDeck <- shuffle [ Card r s 
                                     | r<-[Ace .. King], 

@@ -15,7 +15,10 @@ function consoleLog_ffi(msg) {
 }
 // Global scale to apply to all cards displayed
 var cardScale = 0.5;
-var drag = d3.behavior.drag().on("dragstart", dragstart).on("drag", dragmove).on("dragend", dragend);
+var drag = d3.behavior.drag()
+    .on("dragstart", dragstart)
+    .on("drag", dragmove)
+    .on("dragend", dragend);
 function dragstart() {
     d3.event.sourceEvent.stopPropagation();
     var selectArg;
@@ -31,7 +34,8 @@ function dragstart() {
 function dragmove(d) {
     d.xtranslate += d3.event.dx / cardScale;
     d.ytranslate += d3.event.dy / cardScale;
-    d3.select(this).attr("transform", "scale (" + cardScale + ")" + "translate (" + d.xtranslate + "," + d.ytranslate + ")");
+    d3.select(this).attr("transform", "scale (" + cardScale + ")"
+        + "translate (" + d.xtranslate + "," + d.ytranslate + ")");
 }
 // Provide for callback into haskell when object stops being dragged.
 var dragEndCallback;
@@ -55,7 +59,7 @@ function dragend(d) {
     var coordinates = d3.mouse(this.parentNode);
     var xCoord = coordinates[0];
     var yCoord = coordinates[1];
-    B(A(dragEndCallback, [[0, draggedId], [0, draggedClassName], [0, xCoord], [0, yCoord], 0]));
+    dragEndCallback(draggedId, draggedClassName, xCoord, yCoord);
 }
 // Provide for callback into haskell when mouse passes over object
 var mouseoverCallback;
@@ -71,9 +75,9 @@ function mouseover(d, i) {
     var coordinates = d3.mouse(this.parentNode);
     var xCoord = coordinates[0];
     var yCoord = coordinates[1];
-    B(A(mouseoverCallback, [[0, mousedId], [0, mousedClassName], [0, xCoord], [0, yCoord], 0]));
+    mouseoverCallback(mousedId, mousedClassName, xCoord, yCoord);
 }
-function placeCard_ffi(id, name, classname, x, y) {
+function placeCard(id, name, classname, x, y) {
     // Thanks to : 
     // http://stackoverflow.com/questions/10337640/how-to-access-the-dom-element-that-correlates-to-a-d3-svg-object
     // for telling how to use node() to retrieve DOM element from selection.
@@ -83,22 +87,29 @@ function placeCard_ffi(id, name, classname, x, y) {
     var alreadyDisplayed = !cardSelect.empty();
     if (!alreadyDisplayed) {
         var documentElement = document.getElementById(id);
-        cardSelect = d3.select("body svg").append("g").each(function (d, i) {
-            this.appendChild(documentElement.cloneNode(true));
-        }).attr("data-name", function (d, i) {
-            return name;
-        });
+        cardSelect
+            = d3.select("body svg")
+                .append("g")
+                .each(function (d, i) {
+                this.appendChild(documentElement.cloneNode(true));
+            })
+                .attr("data-name", function (d, i) {
+                return name;
+            });
     }
     // queryString thanks to : http://stackoverflow.com/questions/23034283/is-it-possible-to-use-htmls-queryselector-to-select-by-xlink-attribute-in-an
     card = cardSelect.node();
     var base = d3.select(card).select('use[*|href="#base"]');
     var xOffset = parseInt(base.attr("x"));
     var yOffset = parseInt(base.attr("y"));
-    cardSelect.data([{ xtranslate: (0 + x / cardScale - xOffset), ytranslate: (235.27 + y / cardScale - yOffset) }]).attr("class", function (d, i) {
-        return classname;
-    });
+    cardSelect
+        .data([{ xtranslate: (0 + x / cardScale - xOffset),
+            ytranslate: (235.27 + y / cardScale - yOffset)
+        }])
+        .attr("class", function (d, i) { return classname; });
     var transformFunction = function (d, i) {
-        return "scale (" + cardScale + ")" + "translate (" + d.xtranslate + "," + d.ytranslate + ")";
+        return "scale (" + cardScale + ")"
+            + "translate (" + d.xtranslate + "," + d.ytranslate + ")";
     };
     if (alreadyDisplayed) {
         cardSelect.transition().attr("transform", transformFunction);
@@ -107,22 +118,27 @@ function placeCard_ffi(id, name, classname, x, y) {
         cardSelect.attr("transform", transformFunction).on("mouseover", mouseover);
         // There must be a better way of enabling drag 
         // for new cards in a visble column.
-        if ((classname.indexOf("visibleColumn") > -1) || (classname == "hiddenReserves") || (classname == "solitareDeck")) {
+        if ((classname.indexOf("visibleColumn") > -1)
+            || (classname == "hiddenReserves")
+            || (classname == "solitareDeck")) {
             var selectArg = "g[class=" + classname + "]";
             d3.selectAll(selectArg).call(drag);
         }
     }
 }
-function deleteByClass_ffi(cssSelection) {
+function deleteByClass(cssSelection) {
     d3.selectAll("." + cssSelection).remove();
 }
-function loadCards_ffi(cb) {
+function loadCards(cb) {
     //Import the full deck of cards.
     d3.xml("pretty-svg-cards.svg", "image/svg+xml", function (xml) {
-        d3.select("body").append("div").attr("style", "display: none; visibility: hidden").each(function (d, i) {
+        d3.select("body")
+            .append("div")
+            .attr("style", "display: none; visibility: hidden")
+            .each(function (d, i) {
             this.appendChild(xml.documentElement.cloneNode(true));
         });
         // Call back to haskell when done.
-        B(A(cb, [0]));
+        cb();
     });
 }
